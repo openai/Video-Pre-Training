@@ -1,0 +1,4 @@
+torch==1.9.0
+gym==0.19
+gym3
+attrs
