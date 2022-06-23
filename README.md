@@ -5,6 +5,7 @@ Video PreTraining (VPT): Learning to Act by Watching Unlabeled Online Videos
 
 
 > :page_facing_up: [Read Paper](https://cdn.openai.com/vpt/Paper.pdf) \
+  :page_facing_up: [Blog Post](https://openai.com/blog/vpt) \
   :space_invader: [MineRL Environment](https://github.com/minerllabs/minerl) (note version 1.0+ required) \
   :checkered_flag: [MineRL Competition](https://www.aicrowd.com/challenges/neurips-2022-minerl-basalt-competition)
 
