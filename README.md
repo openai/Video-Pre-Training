@@ -35,9 +35,9 @@ The 1x, 2x and 3x model files correspond to their respective model weights width
 
 Currently, only 2x models are supported. 1x and 3x models will 
 be supported soon. 
-* 1x Model - coming soon
+* [:arrow_down: 1x Model](https://openaipublic.blob.core.windows.net/minecraft-rl/models/1x.model)
 * [:arrow_down: 2x Model](https://openaipublic.blob.core.windows.net/minecraft-rl/models/2x.model)
-* 3x Model - coming soon
+* [:arrow_down: 3x Model](https://openaipublic.blob.core.windows.net/minecraft-rl/models/3x.model)
 
 ### Demonstration Only - Behavioral Cloning
 These models are trained on video demonstrations of humans playing Minecraft
@@ -49,22 +49,22 @@ model further using either the housebuilding contractor data or early game video
 sub-set. See the paper linked above for more details.
 
 #### Foundational Model :chart_with_upwards_trend: 1x Width 
-  * coming soon
+  * [:arrow_down: Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/foundation-model-1x.weights)
 
 #### Foundational Model :chart_with_upwards_trend: 2x Width 
   * [:arrow_down: Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/foundation-model-2x.weights)
 
 #### Foundational Model :chart_with_upwards_trend: 3x Width 
-  * coming soon
+  * [:arrow_down: Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/foundation-model-3x.weights)
 
 #### Fine-Tuned from House :chart_with_upwards_trend: 3x Width 
-  * coming soon
+  * [:arrow_down: Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/bc-house-3x.weights)
 
 #### Fine-Tuned from Early Game :chart_with_upwards_trend: 2x Width 
   * [:arrow_down: Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/bc-early-game-2x.weights)
 
 #### Fine-Tuned from Early Game :chart_with_upwards_trend: 3x Width 
-  * coming soon
+  * [:arrow_down: Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/bc-early-game-3x.weights)
 
 ### Models With Environment Interactions
 These models further refine the above demonstration based models with a reward 
@@ -93,7 +93,15 @@ Currently, there is no contractor data available for download at this time
 
 ## Contribution
 This was a large effort by a dedicated team at OpenAI:
-[Bowen Baker](https://github.com/bowenbaker), [Ilge Akkaya](https://github.com/ilge), [Peter Zhokhov](https://github.com/pzhokhov), [Joost Huizinga](https://github.com/JoostHuizinga), Jie Tang, Adrien Ecoffet, [Brandon Houghton](https://github.com/brandonhoughton), Raul Sampedro, Jeff Clune 
+[Bowen Baker](https://github.com/bowenbaker), 
+[Ilge Akkaya](https://github.com/ilge), 
+[Peter Zhokhov](https://github.com/pzhokhov), 
+[Joost Huizinga](https://github.com/JoostHuizinga), 
+[Jie Tang](https://github.com/jietang), 
+[Adrien Ecoffet](https://github.com/AdrienLE),
+[Brandon Houghton](https://github.com/brandonhoughton), 
+[Raul Sampedro](https://github.com/raul-openai), 
+Jeff Clune 
 The code here represents a minimal version of our model code which was 
 prepared by [Anssi Kanervisto](https://github.com/miffyli) and others so that these models could be used as 
 part of the MineRL BASALT competition. 

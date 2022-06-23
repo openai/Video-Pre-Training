@@ -123,7 +123,7 @@ class MineRLAgent:
         if pi_head_kwargs is None:
             pi_head_kwargs = PI_HEAD_KWARGS
 
-        agent_kwargs = dict(policy_kwargs=POLICY_KWARGS, pi_head_kwargs=PI_HEAD_KWARGS, action_space=action_space)
+        agent_kwargs = dict(policy_kwargs=policy_kwargs, pi_head_kwargs=pi_head_kwargs, action_space=action_space)
 
         self.policy = MinecraftAgentPolicy(**agent_kwargs).to(device)
         self.hidden_state = self.policy.initial_state(1)
