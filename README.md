@@ -9,6 +9,26 @@ Video PreTraining (VPT): Learning to Act by Watching Unlabeled Online Videos
   :space_invader: [MineRL Environment](https://github.com/minerllabs/minerl) (note version 1.0+ required) \
   :checkered_flag: [MineRL BASALT Competition](https://www.aicrowd.com/challenges/neurips-2022-minerl-basalt-competition)
 
+
+## Running models
+
+Install requirements with:
+
+```
+pip install git+https://github.com/minerllabs/minerl@v1.0.0
+pip install -r requirements.txt
+```
+
+To run the code, call
+
+```
+python run_agent.py --model [path to .model file] --weights [path to .weight file]
+```
+
+After loading up, you should see a window of the agent playing Minecraft.
+
+
+
 ## Model Zoo
 Below are the model files and weights files for various pre-trained Minecraft models.
 The 1x, 2x and 3x model files correspond to their respective model weights width. 
