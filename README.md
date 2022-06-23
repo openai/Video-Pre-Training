@@ -33,8 +33,6 @@ After loading up, you should see a window of the agent playing Minecraft.
 Below are the model files and weights files for various pre-trained Minecraft models.
 The 1x, 2x and 3x model files correspond to their respective model weights width. 
 
-Currently, only 2x models are supported. 1x and 3x models will 
-be supported soon. 
 * [:arrow_down: 1x Model](https://openaipublic.blob.core.windows.net/minecraft-rl/models/1x.model)
 * [:arrow_down: 2x Model](https://openaipublic.blob.core.windows.net/minecraft-rl/models/2x.model)
 * [:arrow_down: 3x Model](https://openaipublic.blob.core.windows.net/minecraft-rl/models/3x.model)
