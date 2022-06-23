@@ -33,9 +33,9 @@ After loading up, you should see a window of the agent playing Minecraft.
 Below are the model files and weights files for various pre-trained Minecraft models.
 The 1x, 2x and 3x model files correspond to their respective model weights width. 
 
-* [:arrow_down: 1x Model](https://openaipublic.blob.core.windows.net/minecraft-rl/models/1x.model)
+* [:arrow_down: 1x Model](https://openaipublic.blob.core.windows.net/minecraft-rl/models/foundation-model-1x.model)
 * [:arrow_down: 2x Model](https://openaipublic.blob.core.windows.net/minecraft-rl/models/2x.model)
-* [:arrow_down: 3x Model](https://openaipublic.blob.core.windows.net/minecraft-rl/models/3x.model)
+* [:arrow_down: 3x Model](https://openaipublic.blob.core.windows.net/minecraft-rl/models/foundation-model-3x.model)
 
 ### Demonstration Only - Behavioral Cloning
 These models are trained on video demonstrations of humans playing Minecraft
