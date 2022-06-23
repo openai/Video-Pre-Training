@@ -104,7 +104,7 @@ def resize_image(img, target_resolution):
 
 
 class MineRLAgent:
-    def __init__(self, env, device=None):
+    def __init__(self, env, device=None, policy_kwargs=None, pi_head_kwargs=None):
         validate_env(env)
 
         if device is None:
@@ -117,6 +117,12 @@ class MineRLAgent:
         action_space = DictType(**action_space)
 
         self.action_transformer = ActionTransformer(**ACTION_TRANSFORMER_KWARGS)
+
+        if policy_kwargs is None:
+            policy_kwargs = POLICY_KWARGS
+        if pi_head_kwargs is None:
+            pi_head_kwargs = PI_HEAD_KWARGS
+
         agent_kwargs = dict(policy_kwargs=POLICY_KWARGS, pi_head_kwargs=PI_HEAD_KWARGS, action_space=action_space)
 
         self.policy = MinecraftAgentPolicy(**agent_kwargs).to(device)
