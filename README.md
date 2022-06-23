@@ -5,7 +5,7 @@ Video PreTraining (VPT): Learning to Act by Watching Unlabeled Online Videos
 
 
 > :page_facing_up: [Read Paper](https://cdn.openai.com/vpt/Paper.pdf) \
-  :space_invader: [MineRL Environment](https://github.com/minerllabs/minerl) \
+  :space_invader: [MineRL Environment](https://github.com/minerllabs/minerl) (note version 1.0+ required) \
   :checkered_flag: [MineRL Competition](https://www.aicrowd.com/challenges/neurips-2022-minerl-basalt-competition)
 
 ## Model Zoo
@@ -71,7 +71,7 @@ Currently, there is no contractor data available for download at this time
 
 
 ## Contribution
-This was a large effort by a dedicated team at OpenAI. 
+This was a large effort by a dedicated team at OpenAI.
 The code here represents a minimal version of our model code which was 
 prepared by @Miffyli and others so that these models could be used as 
 part of the MineRL BASALT competition. 
