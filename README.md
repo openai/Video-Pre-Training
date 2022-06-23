@@ -76,11 +76,8 @@ on how they were trained and the exact reward schedule.
   * [:arrow_down: 2x Width Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/rl-from-early-game-2x.weights)
 
 ## Contractor Demonstrations Dataset
-We are releasing contractor data collected over the course of the project. Links to index 
-files with more information will be linked here as the data released.
-
-
-Currently, there is no contractor data available for download at this time
+We are currently working on to release contractor data collected over the course of the project. Links to index 
+files with more information will be linked here as the data is released.
 
 
 ## Contribution
