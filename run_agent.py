@@ -7,7 +7,7 @@ def main():
     env = HumanSurvival(**ENV_KWARGS).make()
     print("---Loading model---")
     agent = MineRLAgent(env)
-    agent.load_weights("model.weights")
+    agent.load_weights("rl-from-early-game-2x.weights")
 
     print("---Launching MineRL enviroment (be patient)---")
     obs = env.reset()
