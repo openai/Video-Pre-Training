@@ -46,40 +46,34 @@ while house and early game models refine their respective size foundational
 model further using either the housebuilding contractor data or early game video
 sub-set. See the paper linked above for more details.
 
-#### Foundational Model :chart_with_upwards_trend: 1x Width 
-  * [:arrow_down: Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/foundation-model-1x.weights)
+#### Foundational Model :chart_with_upwards_trend:
+  * [:arrow_down: 1x Width Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/foundation-model-1x.weights)
+  * [:arrow_down: 2x Width Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/foundation-model-2x.weights)
+  * [:arrow_down: 3x Width Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/foundation-model-3x.weights)
 
-#### Foundational Model :chart_with_upwards_trend: 2x Width 
-  * [:arrow_down: Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/foundation-model-2x.weights)
+#### Fine-Tuned from House :chart_with_upwards_trend:
+  * [:arrow_down: 3x Width Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/bc-house-3x.weights)
 
-#### Foundational Model :chart_with_upwards_trend: 3x Width 
-  * [:arrow_down: Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/foundation-model-3x.weights)
-
-#### Fine-Tuned from House :chart_with_upwards_trend: 3x Width 
-  * [:arrow_down: Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/bc-house-3x.weights)
-
-#### Fine-Tuned from Early Game :chart_with_upwards_trend: 2x Width 
-  * [:arrow_down: Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/bc-early-game-2x.weights)
-
-#### Fine-Tuned from Early Game :chart_with_upwards_trend: 3x Width 
-  * [:arrow_down: Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/bc-early-game-3x.weights)
+#### Fine-Tuned from Early Game :chart_with_upwards_trend: 
+  * [:arrow_down: 2x Width Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/bc-early-game-2x.weights)
+  * [:arrow_down: 3x Width Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/bc-early-game-3x.weights)
 
 ### Models With Environment Interactions
 These models further refine the above demonstration based models with a reward 
-function targeted at obtaining diamond pickaxes. While less general the behavioral
+function targeted at obtaining diamond pickaxes. While less general then the behavioral
 cloning models, these models have the benefit of interacting with the environment
 using a reward function and excel at progressing through the tech tree quickly.
 See the paper for more information
 on how they were trained and the exact reward schedule.
 
-#### RL from Foundation :chart_with_upwards_trend: 2x Width 
-  * [:arrow_down: Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/rl-from-foundation-2x.weights)
+#### RL from Foundation :chart_with_upwards_trend:
+  * [:arrow_down: 2x Width Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/rl-from-foundation-2x.weights)
 
-#### RL from House :chart_with_upwards_trend: 2x Width 
-  * [:arrow_down: Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/rl-from-house-2x.weights)
+#### RL from House :chart_with_upwards_trend:
+  * [:arrow_down: 2x Width Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/rl-from-house-2x.weights)
 
-#### RL from Early Game :chart_with_upwards_trend: 2x Width 
-  * [:arrow_down: Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/rl-from-early-game-2x.weights)
+#### RL from Early Game :chart_with_upwards_trend:
+  * [:arrow_down: 2x Width Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/rl-from-early-game-2x.weights)
 
 ## Contractor Demonstrations Dataset
 We are releasing contractor data collected over the course of the project. Links to index 
