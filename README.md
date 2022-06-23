@@ -15,7 +15,7 @@ Video PreTraining (VPT): Learning to Act by Watching Unlabeled Online Videos
 Install requirements with:
 
 ```
-pip install git+https://github.com/minerllabs/minerl/tree/v1.0.0
+pip install git+https://github.com/minerllabs/minerl@v1.0.0
 pip install -r requirements.txt
 ```
 
