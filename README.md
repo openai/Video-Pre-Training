@@ -73,7 +73,7 @@ Currently, there is no contractor data available for download at this time
 
 ## Contribution
 This was a large effort by a dedicated team at OpenAI:
-[Bowen Baker](https://github.com/bowenbaker), [Ilge Akkaya](https://github.com/ilge), [Peter Zhokhov](https://github.com/pzhokhov), [Joost Huizinga](https://github.com/JoostHuizinga), Jie Tang, Adrien Ecoffet, [@BrandonHoughton](https://github.com/brandonhoughton), Raul Sampedro, Jeff Clune 
+[Bowen Baker](https://github.com/bowenbaker), [Ilge Akkaya](https://github.com/ilge), [Peter Zhokhov](https://github.com/pzhokhov), [Joost Huizinga](https://github.com/JoostHuizinga), Jie Tang, Adrien Ecoffet, [Brandon Houghton](https://github.com/brandonhoughton), Raul Sampedro, Jeff Clune 
 The code here represents a minimal version of our model code which was 
 prepared by [Anssi Kanervisto](https://github.com/miffyli) and others so that these models could be used as 
 part of the MineRL BASALT competition. 
