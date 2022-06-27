@@ -10,7 +10,7 @@ Video PreTraining (VPT): Learning to Act by Watching Unlabeled Online Videos
   :checkered_flag: [MineRL BASALT Competition](https://www.aicrowd.com/challenges/neurips-2022-minerl-basalt-competition)
 
 
-## Running models
+# Running models
 
 Install requirements with:
 
@@ -29,7 +29,7 @@ After loading up, you should see a window of the agent playing Minecraft.
 
 
 
-## Model Zoo
+# Model Zoo
 Below are the model files and weights files for various pre-trained Minecraft models.
 The 1x, 2x and 3x model files correspond to their respective model weights width. 
 
@@ -75,12 +75,224 @@ on how they were trained and the exact reward schedule.
 #### RL from Early Game :chart_with_upwards_trend:
   * [:arrow_down: 2x Width Weights](https://openaipublic.blob.core.windows.net/minecraft-rl/models/rl-from-early-game-2x.weights)
 
-## Contractor Demonstrations Dataset
-We are currently working on to release contractor data collected over the course of the project. Links to index 
-files with more information will be linked here as the data is released.
+# Contractor Demonstrations
+
+### Versions
+Over the course of the project we requested various demonstrations from contractors
+which we release as index files below. In general, major recorder versions change for a new 
+prompt or recording feature while bug-fixes were represented as minor version changes. 
+However, some
+recorder versions we asked contractors to change their username when recording particular 
+modalities. Also, as contractors internally ask questions, clarification from one contractor may
+result in a behavioral change in the other contractor. It is intractable to share every contractor's
+view for each version, but we've shared the prompts and major clarifications for each recorder
+version where the task changed significantly.
+
+  <details>
+  <summary>Initial Prompt</summary>
+
+  TODO add intial prompt
+
+  </details>
+
+The following is a list of the available versions:
+
+* **6.x** Core recorder features subject to change [:arrow_down: index file](todo.link)
+  * 6.9 First feature complete recorder version [:arrow_down: index file](todo.link)
+  * 6.10 Fixes mouse scaling on Mac when gui is open [:arrow_down: index file](todo.link)
+  * 6.11 Tracks the hotbar slot [:arrow_down: index file](todo.link)
+  * 6.13 Springing, swap-hands, ... (see commits below) [:arrow_down: index file](todo.link)
+    <details>
+    <summary>Commits</summary> 
+  
+    * improve replays that are cut in the middle of gui; working on riding boats / replays cut in the middle of a run
+    * improve replays by adding dwheel action etc, also, loosen up replay tolerances
+    * opencv version bump
+    * add swap hands, and recording of the step timestamp
+    * implement replaying from running and sprinting and tests
+    * do not record sprinting (can use stats for that)
+    * check for mouse button number, ignore >2
+    * handle the errors when mouse / keyboard are recorded as null
+
+    </details>
+* **7.x** Prompt changes [:arrow_down: index file](todo.link)
+  * 7.6 Bump version for internal tracking [:arrow_down: index file](todo.link)
+    <details>
+    <summary>Additional ask to contractors</summary>
+  
+    Right now, early game data is especially valuable to us. As such, we request that at least half of the data you upload is from the first 30 minutes of the game. This means that, for every hour of gameplay you spend in an older world, we ask you to play two sessions in which you create a new world and play for 30 minutes. You can play for longer in these worlds, but only the first 30 minutes counts as early game data.
+
+    </details>
+* **8.x** House Building from Scratch [:arrow_down: index](todo.link)
+  <details>
+  <summary>Prompt for contractors</summary> 
+  
+  Hi all! Thank you for your hard work so far.
+  
+  This week we would like to have you all collect data on a specific task.
+  
+  This comes with a new recorder version 8.0 which you will need to update your recording script to download.
+  
+  This week we would like you to use a new world each time you play, so loading existing worlds is disabled.
+  
+  The new task is as follows:
+  
+  Starting in a new world, build a simple house in 10-15 minutes. This corresponds to one day and a bit of the night. Please use primarily wood, dirt, and sand, as well as crafted wood items such as doors, fences, ect. in constructing your house. Avoid using difficult items such as stone. Aside from those constraints, you may decorate the structure you build as you wish. It does not need to have any specific furniture. For example, it is OK if there is no bed in your house. If you have not finished the house by the sunrise (20 minutes) please exit and continue to another demonstration. Please continue to narrate what you are doing while completing this task.
+  
+  Since you will be unable to resume building after exiting Minecraft or going back to the main menu, you must finish these demonstrations in one session. Pausing via the menu is still supported. If you want to view your creations later, they will be saved locally so you can look at them in your own time. We may use these save files in a future task so if you have space, please leave the save files titled “build-house-15-min-“.
+
+  For this week try to avoid all cobblestone / stone / granite
+  
+  For this week we just want simple houses without sleeping. If 10 minutes is too short, let us know and we can think of how to adjust!
+
+  Stone tools are ok but I think you may run-out of time
+  </details>
+
+  * Note this version introduces 10-minute timer that ends the episode. It 
+  cut experiments short occasionally and was fixed in 9.1
+  * 8.0 Simple House :checkered_flag: [:arrow_down: index](todo.link)
+  * 8.1 Simple House :checkered_flag: [:arrow_down: index](todo.link)
+  * 8.2 Simple House :checkered_flag: [:arrow_down: index](todo.link)
+* **9.x** House Building from Random Starting Materials [:arrow_down: index](todo.link)
+  <details>
+    <summary>Prompt for contractors</summary> 
+  
+    You now will have 10 minutes to use the provided resources to build your house / home / or structure. In this version, the experiment will time out after 10 minutes if you are not complete so don't be alarmed if that happens, it is intentional.
+
+    No need to use up all the resources! It's ok to collect a few things but spend the majority of the time placing blocks (the act of placing seems to be harder to learn)
+    </details>
+
+     * 9.0 First version [:arrow_down: index](todo.link)
+     * 9.1 Fixed timer bug [:arrow_down: index](todo.link)
+* **10.0** Obtain Diamond Pickaxe [:arrow_down: index](todo.link)
+  <details>
+  <summary>Changes and Prompt</summary> 
+  Prompt:
+       
+  For this new task we have given you 20 minutes to craft a diamond pickaxe. We ask that you do not try to search for villages or other ways of getting diamonds, but if you are spawned in view of one, or happen to fall into a cave structure feel free to explore it for diamonds.
+  If 20 min is not enough that is OK. It will happen on some seeds because of bad luck. Please do not use glitches to find the diamonds.
+  
+  Changes:
+  * change to 20 minute time limit
+  * _don't count gui time as part of the time limit_
+  * World are named `"collect-diamond-pickaxe-15min-" + Math.abs(random.nextInt());`
+
+  </details>
+  
+
+Sometimes we asked the contractors to signify other tasks besides changing the version.
+
+<details>
+<summary>Prompt to contractors (click to show)</summary> 
+Another request about additional time - please use some of it to chop trees. Specifically, please start the recorder by adding --username treechop argument to the script (i.e. use play --username treechop on windows, ./play.sh --username treechop on osx/linux), and spend some time chopping trees! Getting wooden or stone tools is ok, but please spend the majority of the with username treechop specifically chopping. I did it myself for about 15 minutes, and it does get boring pretty quickly, so I don't expect you to do it all the time, but please do at least a little bit of chopping. Feel free to play normally the rest of the time (but please restart without --username treechop argument when you are not chopping)
+However, it is preferable that you start a new world though, and use only the tools that are easily obtainable in that world. I'll see what I can do about getting player an iron axe - that sounds reasonable, and should not be hard, but will require a code update.
+</details>
+
+### Environment
+We restrict the contractors to playing Minecraft in windowed mode at 720p which we downsample at 20hz to 360p 
+to minimize space. We also disabled the options screen to prevent the contractor from 
+changing things such as brightness, or rendering options. We ask contractors not to press keys
+such as f3 which shows a debug overlay, however some contractors may still do this.
 
 
-## Contribution
+### Data format
+
+Demonstrations are broken up into up to 5 minute segments consisting of a series of 
+compressed screen observations, actions, environment statistics, and a checkpoint
+save file from the start of the segment. Each relative path in the index will
+have all the files for that given segment, however if a file was dropped while
+uploading, the corresponding relative path is not included in the index therefore 
+there may be missing chunks from otherwise continuous demonstrations.
+
+Index files are provided for each version as a json file:
+```json
+{
+  "basedir": "https://openaipublic.blob.core.windows.net/data/",
+  "relpaths": [
+    "8.0/cheeky-cornflower-setter-74ae6c2eae2e-20220315-122354",
+    ...
+  ]
+}
+```
+Relative paths follow the following format:
+* `<recorder-version>/<contractor-alias>-<session-id>-<date>-<time>`
+
+> Note that due to network errors, some segments may be missing from otherwise 
+continuous demonstrations.
+
+Your data loader can then find following files:
+* Video observation: `<basedir>/<relpath>.mp4`
+* Action file: `<basedir>/<relpath>.jsonl`
+* Options file: `<basedir>/<relpath>-options.json`
+* Checkpoint save file: `<basedir>/<relpath>.zip`
+ 
+
+Where actions in v7.x+ are of the form
+```json
+{
+  "mouse": {
+    "x": 274.0,
+    "y": 338.0,
+    "dx": 0.0,
+    "dy": 0.0,
+    "scaledX": -366.0,
+    "scaledY": -22.0,
+    "dwheel": 0.0,
+    "buttons": [],
+    "newButtons": []
+  },
+  "keyboard": {
+    "keys": [
+      "key.keyboard.a",
+      "key.keyboard.s"
+    ],
+    "newKeys": [],
+    "chars": ""
+  },
+  "isGuiOpen": false,
+  "isGuiInventory": false,
+  "hotbar": 4,
+  "yaw": -112.35006,
+  "pitch": 8.099996,
+  "xpos": 841.364694513396,
+  "ypos": 63.0,
+  "zpos": 24.956354839537802,
+  "tick": 0,
+  "milli": 1649575088006,
+  "inventory": [
+    {
+      "type": "oak_door",
+      "quantity": 3
+    },
+    {
+      "type": "oak_planks",
+      "quantity": 59
+    },
+    {
+      "type": "stone_pickaxe",
+      "quantity": 1
+    },
+    {
+      "type": "oak_planks",
+      "quantity": 64
+    }
+  ],
+  "serverTick": 6001,
+  "serverTickDurationMs": 36.3466,
+  "stats": {
+    "minecraft.custom:minecraft.jump": 4,
+    "minecraft.custom:minecraft.time_since_rest": 5999,
+    "minecraft.custom:minecraft.play_one_minute": 5999,
+    "minecraft.custom:minecraft.time_since_death": 5999,
+    "minecraft.custom:minecraft.walk_one_cm": 7554,
+    "minecraft.use_item:minecraft.oak_planks": 5,
+    "minecraft.custom:minecraft.fall_one_cm": 269,
+    "minecraft.use_item:minecraft.glass_pane": 3
+  }
+}
+```
+
+# Contribution
 This was a large effort by a dedicated team at OpenAI:
 [Bowen Baker](https://github.com/bowenbaker), 
 [Ilge Akkaya](https://github.com/ilge), 
@@ -89,7 +301,7 @@ This was a large effort by a dedicated team at OpenAI:
 [Jie Tang](https://github.com/jietang), 
 [Adrien Ecoffet](https://github.com/AdrienLE),
 [Brandon Houghton](https://github.com/brandonhoughton), 
-[Raul Sampedro](https://github.com/raul-openai), 
+[Raul Sampedro](https://github.com/samraul), 
 Jeff Clune 
 The code here represents a minimal version of our model code which was 
 prepared by [Anssi Kanervisto](https://github.com/miffyli) and others so that these models could be used as 
