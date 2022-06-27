@@ -125,7 +125,7 @@ The following is a list of the available versions:
     </details>
 * **8.x** House Building from Scratch [:arrow_down: index](todo.link)
   <details>
-  <summary>Prompt for contractors</summary> 
+  <summary>Changes and Prompt</summary> 
   
   Hi all! Thank you for your hard work so far.
   
@@ -146,6 +146,11 @@ The following is a list of the available versions:
   For this week we just want simple houses without sleeping. If 10 minutes is too short, let us know and we can think of how to adjust!
 
   Stone tools are ok but I think you may run-out of time
+  
+  Changes:
+    * Timer ends episode after 10 realtime minutes
+    * Worlds are named: `"build-house-15-min-" + Math.abs(random.nextInt());`
+
   </details>
 
   * Note this version introduces 10-minute timer that ends the episode. It 
@@ -154,12 +159,82 @@ The following is a list of the available versions:
   * 8.1 Simple House :checkered_flag: [:arrow_down: index](todo.link)
   * 8.2 Simple House :checkered_flag: [:arrow_down: index](todo.link)
 * **9.x** House Building from Random Starting Materials [:arrow_down: index](todo.link)
-  <details>
-    <summary>Prompt for contractors</summary> 
+    <details>
+    <summary>Changes and Prompt</summary> 
   
     You now will have 10 minutes to use the provided resources to build your house / home / or structure. In this version, the experiment will time out after 10 minutes if you are not complete so don't be alarmed if that happens, it is intentional.
 
     No need to use up all the resources! It's ok to collect a few things but spend the majority of the time placing blocks (the act of placing seems to be harder to learn)
+    
+    Changes:
+    * Worlds are named: `"design-house-10-min-" + Math.abs(random.nextInt());`   
+    * Starting inventory given by code below
+    </details>
+
+    <details>
+    <summary>Random Starting Inventory Code</summary> 
+
+  ```java
+        Random random = new Random();
+        List<ItemStack> hotbar = new ArrayList<>();
+        List<ItemStack> inventory = new ArrayList<>();
+  
+        // Ensure we give the player the basic tools in their hot bar
+        hotbar.add(new ItemStack(Items.STONE_AXE));
+        hotbar.add(new ItemStack(Items.STONE_PICKAXE));
+        hotbar.add(new ItemStack(Items.STONE_SHOVEL));
+        hotbar.add(new ItemStack(Items.CRAFTING_TABLE));
+  
+        // Add some random items to the player hotbar as well
+        addToList(hotbar, inventory, Items.TORCH, random.nextInt(16) * 2 + 2);
+  
+        // Next add main building blocks
+        if (random.nextFloat() < 0.7) {
+           addToList(hotbar, inventory, Items.OAK_FENCE_GATE, random.nextInt(5));
+           addToList(hotbar, inventory, Items.OAK_FENCE, random.nextInt(5) * 64);
+           addToList(hotbar, inventory, Items.OAK_DOOR, random.nextInt(5));
+           addToList(hotbar, inventory, Items.OAK_TRAPDOOR, random.nextInt(2) * 2);
+           addToList(hotbar, inventory, Items.OAK_PLANKS, random.nextInt(3) * 64 + 128);
+           addToList(hotbar, inventory, Items.OAK_SLAB, random.nextInt(3) * 64);
+           addToList(hotbar, inventory, Items.OAK_STAIRS, random.nextInt(3) * 64);
+           addToList(hotbar, inventory, Items.OAK_LOG, random.nextInt(2) * 32);
+           addToList(hotbar, inventory, Items.OAK_PRESSURE_PLATE, random.nextInt(5));
+        } else {
+           addToList(hotbar, inventory, Items.BIRCH_FENCE_GATE, random.nextInt(5));
+           addToList(hotbar, inventory, Items.BIRCH_FENCE, random.nextInt(5) * 64);
+           addToList(hotbar, inventory, Items.BIRCH_DOOR, random.nextInt(5));
+           addToList(hotbar, inventory, Items.BIRCH_TRAPDOOR, random.nextInt(2) * 2);
+           addToList(hotbar, inventory, Items.BIRCH_PLANKS, random.nextInt(3) * 64 + 128);
+           addToList(hotbar, inventory, Items.BIRCH_SLAB, random.nextInt(3) * 64);
+           addToList(hotbar, inventory, Items.BIRCH_STAIRS, random.nextInt(3) * 64);
+           addToList(hotbar, inventory, Items.BIRCH_LOG, random.nextInt(2) * 32);
+           addToList(hotbar, inventory, Items.BIRCH_PRESSURE_PLATE, random.nextInt(5));
+        }
+  
+        // Now add some random decoration items to the player inventory
+        addToList(hotbar, inventory, Items.CHEST, random.nextInt(3));
+        addToList(hotbar, inventory, Items.FURNACE, random.nextInt(2) + 1);
+        addToList(hotbar, inventory, Items.GLASS_PANE,  random.nextInt(5) * 4);
+        addToList(hotbar, inventory, Items.WHITE_BED, (int) (random.nextFloat() + 0.2)); // Bed 20% of the time
+        addToList(hotbar, inventory, Items.PAINTING, (int) (random.nextFloat() + 0.1)); // Painting 10% of the time
+        addToList(hotbar, inventory, Items.FLOWER_POT, (int) (random.nextFloat() + 0.1) * 4); // 4 Flower pots 10% of the time
+        addToList(hotbar, inventory, Items.OXEYE_DAISY, (int) (random.nextFloat() + 0.1) * 4); // 4 Oxeye daisies 10% of the time
+        addToList(hotbar, inventory, Items.POPPY, (int) (random.nextFloat() + 0.1) * 4); // 4 Poppies 10% of the time
+        addToList(hotbar, inventory, Items.SUNFLOWER, (int) (random.nextFloat() + 0.1) * 4); // 4 Sunflowers 10% of the time
+  
+        // Shuffle the hotbar slots and inventory slots
+        Collections.shuffle(hotbar);
+        Collections.shuffle(inventory);
+  
+        // Give the player the items
+        this.mc.getIntegratedServer().getPlayerList().getPlayers().forEach(p -> {
+           if (p.getUniqueID().equals(this.getUniqueID())) {
+               hotbar.forEach(p.inventory::addItemStackToInventory);
+               inventory.forEach(p.inventory::addItemStackToInventory);
+           }
+        });
+  ```
+
     </details>
 
      * 9.0 First version [:arrow_down: index](todo.link)
