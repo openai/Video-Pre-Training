@@ -300,9 +300,11 @@ Your data loader can then find following files:
 * Action file: `<basedir>/<relpath>.jsonl`
 * Options file: `<basedir>/<relpath>-options.json`
 * Checkpoint save file: `<basedir>/<relpath>.zip`
- 
 
-Where actions in v7.x+ are of the form
+The action file is **not**  a valid json object: each line in
+action file is an individual action dictionary.
+  
+For v7.x, the actions are in form
 ```json
 {
   "mouse": {
@@ -366,6 +368,7 @@ Where actions in v7.x+ are of the form
   }
 }
 ```
+
 
 # Contribution
 This was a large effort by a dedicated team at OpenAI:
