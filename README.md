@@ -97,11 +97,11 @@ version where the task changed significantly.
 
 The following is a list of the available versions:
 
-* **6.x** Core recorder features subject to change [:arrow_down: index file](todo.link)
-  * 6.9 First feature complete recorder version [:arrow_down: index file](todo.link)
-  * 6.10 Fixes mouse scaling on Mac when gui is open [:arrow_down: index file](todo.link)
-  * 6.11 Tracks the hotbar slot [:arrow_down: index file](todo.link)
-  * 6.13 Springing, swap-hands, ... (see commits below) [:arrow_down: index file](todo.link)
+* **6.x** Core recorder features subject to change (link comming soon)
+  * 6.9 First feature complete recorder version 
+  * 6.10 Fixes mouse scaling on Mac when gui is open 
+  * 6.11 Tracks the hotbar slot
+  * 6.13 Sprinting, swap-hands, ... (see commits below) 
     <details>
     <summary>Commits</summary> 
   
@@ -115,15 +115,15 @@ The following is a list of the available versions:
     * handle the errors when mouse / keyboard are recorded as null
 
     </details>
-* **7.x** Prompt changes [:arrow_down: index file](todo.link)
-  * 7.6 Bump version for internal tracking [:arrow_down: index file](todo.link)
+* **7.x** Prompt changes [:arrow_down: index file](https://openaipublic.blob.core.windows.net/minecraft-rl/snapshots/all_7xx_Apr_6.json)
+  * 7.6 Bump version for internal tracking 
     <details>
     <summary>Additional ask to contractors</summary>
   
     Right now, early game data is especially valuable to us. As such, we request that at least half of the data you upload is from the first 30 minutes of the game. This means that, for every hour of gameplay you spend in an older world, we ask you to play two sessions in which you create a new world and play for 30 minutes. You can play for longer in these worlds, but only the first 30 minutes counts as early game data.
 
     </details>
-* **8.x** House Building from Scratch [:arrow_down: index](todo.link)
+* **8.x** :clipboard: House Building from Scratch Task [:arrow_down: index](https://openaipublic.blob.core.windows.net/minecraft-rl/snapshots/all_8xx_Jun_29.json)
   <details>
   <summary>Changes and Prompt</summary> 
   
@@ -155,10 +155,9 @@ The following is a list of the available versions:
 
   * Note this version introduces 10-minute timer that ends the episode. It 
   cut experiments short occasionally and was fixed in 9.1
-  * 8.0 Simple House :checkered_flag: [:arrow_down: index](todo.link)
-  * 8.1 Simple House :checkered_flag: [:arrow_down: index](todo.link)
-  * 8.2 Simple House :checkered_flag: [:arrow_down: index](todo.link)
-* **9.x** House Building from Random Starting Materials [:arrow_down: index](todo.link)
+  * 8.0 Simple House
+  * 8.2 Update upload script
+* **9.x** :clipboard: House Building from Random Starting Materials Task [:arrow_down: index](https://openaipublic.blob.core.windows.net/minecraft-rl/snapshots/all_9xx_Jun_29.json)
     <details>
     <summary>Changes and Prompt</summary> 
   
@@ -237,9 +236,9 @@ The following is a list of the available versions:
 
     </details>
 
-     * 9.0 First version [:arrow_down: index](todo.link)
-     * 9.1 Fixed timer bug [:arrow_down: index](todo.link)
-* **10.0** Obtain Diamond Pickaxe [:arrow_down: index](todo.link)
+     * 9.0 First version
+     * 9.1 Fixed timer bug
+* **10.0** :clipboard: Obtain Diamond Pickaxe Task [:arrow_down: index](https://openaipublic.blob.core.windows.net/minecraft-rl/snapshots/all_10xx_Jun_29.json)
   <details>
   <summary>Changes and Prompt</summary> 
   Prompt:
@@ -255,7 +254,8 @@ The following is a list of the available versions:
   </details>
   
 
-Sometimes we asked the contractors to signify other tasks besides changing the version.
+Sometimes we asked the contractors to signify other tasks besides changing the version. This 
+primarily occurred in versions 6 and 7 as 8, 9 and 10 are all task specific.
 
 <details>
 <summary>Prompt to contractors (click to show)</summary> 
