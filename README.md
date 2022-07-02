@@ -12,7 +12,8 @@ Video PreTraining (VPT): Learning to Act by Watching Unlabeled Online Videos
 
 ## Running models
 
-Install requirements with:
+Install pre-requirements for [MineRL](https://minerl.readthedocs.io/en/v1.0.0/tutorials/index.html).
+Then install requirements with:
 
 ```
 pip install git+https://github.com/minerllabs/minerl@v1.0.0
