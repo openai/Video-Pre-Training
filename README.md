@@ -97,7 +97,7 @@ version where the task changed significantly.
 
 The following is a list of the available versions:
 
-* **6.x** Core recorder features subject to change (link comming soon)
+* **6.x** Core recorder features subject to change [:arrow_down: index file](https://openaipublic.blob.core.windows.net/minecraft-rl/snapshots/all_6xx_Jun_29.json)
   * 6.9 First feature complete recorder version 
   * 6.10 Fixes mouse scaling on Mac when gui is open 
   * 6.11 Tracks the hotbar slot
