@@ -92,7 +92,7 @@ version where the task changed significantly.
   <details>
   <summary>Initial Prompt</summary>
 
-  TODO add intial prompt
+  We are collecting data for training AI models in Minecraft. You'll need to install java, download the modified version of minecraft (that collects and uploads your play data), and play minecraft survival mode! Paid per hour of gameplay. Prior experience in minecraft not. necessary. We do not collect any data that is unrelated to minecraft from your computer.
 
   </details>
 
