@@ -1,4 +1,5 @@
 from copy import deepcopy
+from email import policy
 from typing import Dict, Optional
 
 import numpy as np
@@ -14,6 +15,7 @@ from lib.normalize_ewma import NormalizeEwma
 from lib.scaled_mse_head import ScaledMSEHead
 from lib.tree_util import tree_map
 from lib.util import FanInInitReLULayer, ResidualRecurrentBlocks
+from lib.misc import transpose
 
 
 class ImgPreprocessing(nn.Module):
@@ -299,3 +301,131 @@ class MinecraftAgentPolicy(nn.Module):
 
         # After unsqueezing, squeeze back
         return self.value_head.denormalize(vpred)[:, 0]
+
+
+class InverseActionNet(MinecraftPolicy):
+    """
+    Args:
+        conv3d_params: PRE impala 3D CNN params. They are just passed into th.nn.Conv3D.
+    """
+
+    def __init__(
+        self,
+        hidsize=512,
+        conv3d_params=None,
+        **MCPoliy_kwargs,
+    ):
+        super().__init__(
+            hidsize=hidsize,
+            # If we're using 3dconv, then we normalize entire impala otherwise don't
+            # normalize the first impala layer since we normalize the input
+            first_conv_norm=conv3d_params is not None,
+            **MCPoliy_kwargs,
+        )
+        self.conv3d_layer = None
+        if conv3d_params is not None:
+            # 3D conv is the first layer, so don't normalize its input
+            conv3d_init_params = deepcopy(self.init_norm_kwargs)
+            conv3d_init_params["group_norm_groups"] = None
+            conv3d_init_params["batch_norm"] = False
+            self.conv3d_layer = FanInInitReLULayer(
+                layer_type="conv3d",
+                log_scope="3d_conv",
+                **conv3d_params,
+                **conv3d_init_params,
+            )
+
+    def forward(self, ob, state_in, context):
+        first = context["first"]
+        x = self.img_preprocess(ob["img"])
+
+        # Conv3D Prior to Impala
+        if self.conv3d_layer is not None:
+            x = self._conv3d_forward(x)
+
+        # Impala Stack
+        x = self.img_process(x)
+
+        if self.recurrent_layer is not None:
+            x, state_out = self.recurrent_layer(x, first, state_in)
+
+        x = F.relu(x, inplace=False)
+
+        pi_latent = self.lastlayer(x)
+        pi_latent = self.final_ln(x)
+        return (pi_latent, None), state_out
+
+    def _conv3d_forward(self, x):
+        # Convert from (B, T, H, W, C) -> (B, H, W, C, T)
+        x = transpose(x, "bthwc", "bcthw")
+        new_x = []
+        for mini_batch in th.split(x, 1):
+            new_x.append(self.conv3d_layer(mini_batch))
+        x = th.cat(new_x)
+        # Convert back
+        x = transpose(x, "bcthw", "bthwc")
+        return x
+
+
+class InverseActionPolicy(nn.Module):
+    def __init__(
+        self,
+        action_space,
+        pi_head_kwargs=None,
+        idm_net_kwargs=None,
+    ):
+        super().__init__()
+        self.action_space = action_space
+
+        self.net = InverseActionNet(**idm_net_kwargs)
+
+        pi_out_size = self.net.output_latent_size()
+
+        pi_head_kwargs = {} if pi_head_kwargs is None else pi_head_kwargs
+
+        self.pi_head = self.make_action_head(pi_out_size=pi_out_size, **pi_head_kwargs)
+
+    def make_action_head(self, **kwargs):
+        return make_action_head(self.action_space, **kwargs)
+
+    def reset_parameters(self):
+        super().reset_parameters()
+        self.net.reset_parameters()
+        self.pi_head.reset_parameters()
+
+    def forward(self, obs, first: th.Tensor, state_in, **kwargs):
+        if isinstance(obs, dict):
+            # We don't want to mutate the obs input.
+            obs = obs.copy()
+
+            # If special "mask" key is in obs,
+            # It's for masking the logits.
+            # We take it out (the network doesn't need it)
+            mask = obs.pop("mask", None)
+        else:
+            mask = None
+
+        (pi_h, _), state_out = self.net(obs, state_in=state_in, context={"first": first}, **kwargs)
+        pi_logits = self.pi_head(pi_h, mask=mask)
+        return (pi_logits, None, None), state_out
+
+    @th.no_grad()
+    def predict(
+        self,
+        obs,
+        deterministic: bool = True,
+        **kwargs,
+    ):
+        (pd, _, _), state_out = self(obs=obs, **kwargs)
+
+        ac = self.pi_head.sample(pd, deterministic=deterministic)
+        log_prob = self.pi_head.logprob(ac, pd)
+
+        assert not th.isnan(log_prob).any()
+
+        result = {"log_prob": log_prob, "pd": pd}
+
+        return ac, state_out, result
+
+    def initial_state(self, batch_size: int):
+        return self.net.initial_state(batch_size)
