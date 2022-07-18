@@ -99,6 +99,23 @@ class ActionMapping(abc.ABC):
             ac_choice[index] = button_group[action + 1]  # the zero'th index will mean no button pressed
         return ac_choice
 
+class IDMActionMapping(ActionMapping):
+    """For IDM, but essentially this is just an identity mapping"""
+    def from_factored(self, ac: Dict) -> Dict:
+        return ac
+
+    def to_factored(self, ac: Dict) -> Dict:
+        return ac
+
+    def get_action_space_update(self):
+        """Return a magym (gym3) action space. This will be used to update the env action space."""
+        return {
+            "buttons": TensorType(shape=(len(Buttons.ALL),), eltype=Discrete(2)),
+            "camera": TensorType(shape=(2,), eltype=Discrete(self.n_camera_bins)),
+        }
+
+    def get_zero_action(self):
+        raise NotImplementedError()
 
 class CameraHierarchicalMapping(ActionMapping):
     """Buttons are joint as in ButtonsJointMapping, but now a camera on/off meta action is added into this joint space.
@@ -215,3 +232,4 @@ class CameraHierarchicalMapping(ActionMapping):
 
     def get_zero_action(self):
         return self._null_action
+

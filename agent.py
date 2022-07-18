@@ -161,7 +161,7 @@ class MineRLAgent:
         """Turn action from MineRL to model's action"""
         raise NotImplementedError()
 
-    def get_action(self, minerl_obs, ):
+    def get_action(self, minerl_obs):
         """
         Get agent's action for given MineRL observation.
 
