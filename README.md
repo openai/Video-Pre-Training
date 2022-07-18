@@ -82,7 +82,7 @@ IDM aims to predict what actions player is taking in a video recording.
 
 Setup:
 * Install requirements: `pip install -r requirements.txt`
-* Download the IDM model .model and .weight files (TODO links)
+* Download the IDM model [.model :arrow_down:](https://openaipublic.blob.core.windows.net/minecraft-rl/idm/4x_idm.model) and [.weight :arrow_down:](https://openaipublic.blob.core.windows.net/minecraft-rl/idm/4x_idm.weights) files
 * For demonstration purposes, you can use the contractor recordings shared below to. For this demo we use
   [this .mp4](https://openaipublic.blob.core.windows.net/minecraft-rl/data/10.0/cheeky-cornflower-setter-02e496ce4abb-20220421-092639.mp4)
   and [this associated actions file (.jsonl)](https://openaipublic.blob.core.windows.net/minecraft-rl/data/10.0/cheeky-cornflower-setter-02e496ce4abb-20220421-092639.jsonl).
