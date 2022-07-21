@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 import pickle
+import time
 
 from minerl.herobraine.env_specs.human_survival_specs import HumanSurvival
 
@@ -18,10 +19,25 @@ def main(model, weights):
     print("---Launching MineRL enviroment (be patient)---")
     obs = env.reset()
 
+    frame_cap = 1.0/20 # set to 20 FPS
+    time_1 = time.perf_counter()
+    unprocessed = 0
     while True:
-        minerl_action = agent.get_action(obs)
-        obs, reward, done, info = env.step(minerl_action)
-        env.render()
+        can_render = False
+        time_2 = time.perf_counter()
+        passed = time_2 - time_1
+        #check how much time has passed since last frame/pass round and how long the unprocessed queue has been waiting.
+        unprocessed += passed 
+        time_1 = time_2
+
+        while(unprocessed >= frame_cap):
+            unprocessed -= frame_cap    
+            can_render = True   
+
+        if can_render:
+            minerl_action = agent.get_action(obs)
+            obs, reward, done, info = env.step(minerl_action)
+            env.render()
 
 
 if __name__ == "__main__":
