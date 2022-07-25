@@ -98,7 +98,7 @@ Note that `run_inverse_dynamics_model.py` is designed to be a demo of the IDM, n
 
 # Using behavioural cloning to fine-tune the models
 
-**Disclaimer:** This code is a rough demonstration only and not an exact recreation of what original VPT paper did! As such, do not expect replicate the original experiments with this code. This code has been designed to be run-able on consumer hardware (e.g., 8GB of VRAM).
+**Disclaimer:** This code is a rough demonstration only and not an exact recreation of what original VPT paper did (but it contains some preprocessing steps you want to be aware of)! As such, do not expect replicate the original experiments with this code. This code has been designed to be run-able on consumer hardware (e.g., 8GB of VRAM).
 
 Setup:
 * Install requirements: `pip install -r requirements.txt`
