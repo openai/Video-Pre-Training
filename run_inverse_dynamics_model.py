@@ -80,39 +80,49 @@ CAMERA_SCALER = 360.0 / 2400.0
 def json_action_to_env_action(json_action):
     """
     Converts a json action into a MineRL action.
-
-    Note: in some recordings, the recording starts with "attack: 1" despite
-    player obviously not attacking. The IDM seems to reflect this (predicts "attack: 1")
-    at the beginning of the recording.
+    Returns (minerl_action, is_null_action)
     """
+    # This might be slow...
     env_action = NOOP_ACTION.copy()
+    # As a safeguard, make camera action again so we do not override anything
     env_action["camera"] = np.array([0, 0])
 
+    is_null_action = True
     keyboard_keys = json_action["keyboard"]["keys"]
     for key in keyboard_keys:
         # You can have keys that we do not use, so just skip them
+        # NOTE in original training code, ESC was removed and replaced with
+        #      "inventory" action if GUI was open.
+        #      Not doing it here, as BASALT uses ESC to quit the game.
         if key in KEYBOARD_BUTTON_MAPPING:
             env_action[KEYBOARD_BUTTON_MAPPING[key]] = 1
+            is_null_action = False
 
     mouse = json_action["mouse"]
     camera_action = env_action["camera"]
     camera_action[0] = mouse["dy"] * CAMERA_SCALER
     camera_action[1] = mouse["dx"] * CAMERA_SCALER
 
-    if abs(camera_action[0]) > 180:
-        camera_action[0] = 0
-    if abs(camera_action[1]) > 180:
-        camera_action[1] = 0
+    if mouse["dx"] != 0 or mouse["dy"] != 0:
+        is_null_action = False
+    else:
+        if abs(camera_action[0]) > 180:
+            camera_action[0] = 0
+        if abs(camera_action[1]) > 180:
+            camera_action[1] = 0
 
     mouse_buttons = mouse["buttons"]
     if 0 in mouse_buttons:
         env_action["attack"] = 1
+        is_null_action = False
     if 1 in mouse_buttons:
         env_action["use"] = 1
+        is_null_action = False
     if 2 in mouse_buttons:
         env_action["pickItem"] = 1
+        is_null_action = False
 
-    return env_action
+    return env_action, is_null_action
 
 
 def main(model, weights, video_path, json_path, n_batches, n_frames):
@@ -145,7 +155,8 @@ def main(model, weights, video_path, json_path, n_batches, n_frames):
             assert frame.shape[0] == required_resolution[1] and frame.shape[1] == required_resolution[0], "Video must be of resolution {}".format(required_resolution)
             # BGR -> RGB
             frames.append(frame[..., ::-1])
-            recorded_actions.append(json_action_to_env_action(json_data[json_index]))
+            env_action, _ = json_action_to_env_action(json_data[json_index])
+            recorded_actions.append(env_action)
             json_index += 1
         frames = np.stack(frames)
         print("=== Predicting actions ===")

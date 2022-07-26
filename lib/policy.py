@@ -268,6 +268,42 @@ class MinecraftAgentPolicy(nn.Module):
 
         return (pi_logits, vpred, None), state_out
 
+    def get_logprob_of_action(self, pd, action):
+        """
+        Get logprob of taking action `action` given probability distribution
+        (see `get_gradient_for_action` to get this distribution)
+        """
+        ac = tree_map(lambda x: x.unsqueeze(1), action)
+        log_prob = self.pi_head.logprob(ac, pd)
+        assert not th.isnan(log_prob).any()
+        return log_prob[:, 0]
+
+    def get_kl_of_action_dists(self, pd1, pd2):
+        """
+        Get the KL divergence between two action probability distributions
+        """
+        return self.pi_head.kl_divergence(pd1, pd2)
+
+    def get_output_for_observation(self, obs, state_in, first):
+        """
+        Return gradient-enabled outputs for given observation.
+
+        Use `get_logprob_of_action` to get log probability of action
+        with the given probability distribution.
+
+        Returns:
+          - probability distribution given observation
+          - value prediction for given observation
+          - new state
+        """
+        # We need to add a fictitious time dimension everywhere
+        obs = tree_map(lambda x: x.unsqueeze(1), obs)
+        first = first.unsqueeze(1)
+
+        (pd, vpred, _), state_out = self(obs=obs, first=first, state_in=state_in)
+
+        return pd, self.value_head.denormalize(vpred)[:, 0], state_out
+
     @th.no_grad()
     def act(self, obs, first, state_in, stochastic: bool = True, taken_action=None, return_pd=False):
         # We need to add a fictitious time dimension everywhere

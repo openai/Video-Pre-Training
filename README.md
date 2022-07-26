@@ -96,6 +96,27 @@ A window should pop up which shows the video frame-by-frame, showing the predict
 
 Note that `run_inverse_dynamics_model.py` is designed to be a demo of the IDM, not code to put it into practice.
 
+# Using behavioural cloning to fine-tune the models
+
+**Disclaimer:** This code is a rough demonstration only and not an exact recreation of what original VPT paper did (but it contains some preprocessing steps you want to be aware of)! As such, do not expect replicate the original experiments with this code. This code has been designed to be run-able on consumer hardware (e.g., 8GB of VRAM).
+
+Setup:
+* Install requirements: `pip install -r requirements.txt`
+* Download `.weights` and `.model` file for model you want to fine-tune.
+* Download contractor data (below) and place the `.mp4` and `.jsonl` files to the same directory (e.g., `data`). With default settings, you need at least 12 recordings.
+
+If you downloaded the "1x Width" models and placed some data under `data` directory, you can perform finetuning with
+
+```
+python behavioural_cloning.py --data-dir data --in-model foundation-model-1x.model --in-weights foundation-model-1x.weights --out-weights finetuned-1x.weights
+```
+
+You can then use `finetuned-1x.weights` when running the agent. You can change the training settings at the top of `behavioural_cloning.py`.
+
+Major limitations:
+- Only trains single step at the time, i.e., errors are not propagated through timesteps.
+- Computes gradients one sample at a time to keep memory use low, but also slows down the code.
+
 # Contractor Demonstrations
 
 ### Versions
