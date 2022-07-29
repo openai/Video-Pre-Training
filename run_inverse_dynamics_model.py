@@ -125,14 +125,19 @@ def json_action_to_env_action(json_action):
     return env_action, is_null_action
 
 
-def main(model, weights, video_path, json_path, n_batches, n_frames):
-    print(MESSAGE)
-    agent_parameters = pickle.load(open(model, "rb"))
+def get_IDM_agent(model_path: str, weights_path: str) -> IDMAgent:
+    agent_parameters = pickle.load(open(model_path, "rb"))
     net_kwargs = agent_parameters["model"]["args"]["net"]["args"]
     pi_head_kwargs = agent_parameters["model"]["args"]["pi_head_opts"]
     pi_head_kwargs["temperature"] = float(pi_head_kwargs["temperature"])
     agent = IDMAgent(idm_net_kwargs=net_kwargs, pi_head_kwargs=pi_head_kwargs)
-    agent.load_weights(weights)
+    agent.load_weights(weights_path)
+    return agent
+
+
+def main(model, weights, video_path, json_path, n_batches, n_frames):
+    print(MESSAGE)
+    agent = get_IDM_agent(model, weights)
 
     required_resolution = ENV_KWARGS["resolution"]
     cap = cv2.VideoCapture(video_path)
