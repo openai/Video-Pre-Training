@@ -5,8 +5,8 @@ from typing import Dict, List, Optional
 from torch import nn
 from torch.nn import functional as F
 
-from vpt import misc
-from vpt import torch_util as tu
+from vpt.lib import misc
+from vpt.lib import torch_util as tu
 from vpt.lib.util import FanInInitReLULayer
 
 

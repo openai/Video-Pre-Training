@@ -17,7 +17,7 @@ import torch.nn.functional as F
 from torch import nn
 
 import vpt.lib.tree_util as tree_util
-from vpt import misc
+from vpt.lib import misc
 
 
 def contextmanager_to_decorator(cm):
