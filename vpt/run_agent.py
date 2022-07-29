@@ -3,7 +3,7 @@ import pickle
 
 from minerl.herobraine.env_specs.human_survival_specs import HumanSurvival
 
-from agent import MineRLAgent, ENV_KWARGS
+from vpt.agent import MineRLAgent, ENV_KWARGS
 
 def main(model, weights):
     env = HumanSurvival(**ENV_KWARGS).make()

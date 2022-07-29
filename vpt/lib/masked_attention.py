@@ -3,9 +3,9 @@ import functools
 import torch as th
 from torch import nn
 
-import vpt.xf as xf
-from vpt.minecraft_util import store_args
-from vpt.tree_util import tree_map
+import vpt.lib.xf as xf
+from vpt.lib.minecraft_util import store_args
+from vpt.lib.tree_util import tree_map
 
 
 @functools.lru_cache()

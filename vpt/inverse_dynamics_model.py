@@ -4,11 +4,11 @@ import cv2
 from gym3.types import DictType
 from gym import spaces
 
-from vpt.action_mapping import CameraHierarchicalMapping, IDMActionMapping
-from vpt.actions import ActionTransformer
-from vpt.policy import InverseActionPolicy
-from vpt.torch_util import default_device_type, set_default_torch_device
-from agent import resize_image, AGENT_RESOLUTION
+from vpt.lib.action_mapping import CameraHierarchicalMapping, IDMActionMapping
+from vpt.lib.actions import ActionTransformer
+from vpt.lib.policy import InverseActionPolicy
+from vpt.lib.torch_util import default_device_type, set_default_torch_device
+from vpt.agent import resize_image, AGENT_RESOLUTION
 
 
 ACTION_TRANSFORMER_KWARGS = dict(

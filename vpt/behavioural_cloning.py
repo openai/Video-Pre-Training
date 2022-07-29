@@ -19,9 +19,9 @@ import minerl
 import torch as th
 import numpy as np
 
-from agent import PI_HEAD_KWARGS, MineRLAgent
-from data_loader import DataLoader
-from vpt.tree_util import tree_map
+from vpt.agent import PI_HEAD_KWARGS, MineRLAgent
+from vpt.data_loader import DataLoader
+from vpt.lib.tree_util import tree_map
 
 EPOCHS = 2
 # Needs to be <= number of videos

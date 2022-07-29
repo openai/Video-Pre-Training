@@ -7,7 +7,7 @@ from torch.nn import functional as F
 
 from vpt import misc
 from vpt import torch_util as tu
-from vpt.util import FanInInitReLULayer
+from vpt.lib.util import FanInInitReLULayer
 
 
 class CnnBasicBlock(nn.Module):

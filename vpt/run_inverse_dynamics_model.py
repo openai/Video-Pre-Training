@@ -10,8 +10,8 @@ import numpy as np
 import json
 import torch as th
 
-from agent import ENV_KWARGS
-from inverse_dynamics_model import IDMAgent
+from vpt.agent import ENV_KWARGS
+from vpt.inverse_dynamics_model import IDMAgent
 
 
 KEYBOARD_BUTTON_MAPPING = {

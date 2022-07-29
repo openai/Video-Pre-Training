@@ -11,8 +11,8 @@ from multiprocessing import Process, Queue, Event
 import numpy as np
 import cv2
 
-from run_inverse_dynamics_model import json_action_to_env_action
-from agent import resize_image, AGENT_RESOLUTION
+from vpt.run_inverse_dynamics_model import json_action_to_env_action
+from vpt.agent import resize_image, AGENT_RESOLUTION
 
 QUEUE_TIMEOUT = 10
 

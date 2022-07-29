@@ -6,7 +6,7 @@ from typing import Dict, List
 import numpy as np
 from gym3.types import DictType, Discrete, TensorType
 
-from vpt.actions import Buttons
+from vpt.lib.actions import Buttons
 
 
 class ActionMapping(abc.ABC):

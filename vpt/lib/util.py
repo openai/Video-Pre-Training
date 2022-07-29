@@ -4,10 +4,10 @@ import torch as th
 from torch import nn
 from torch.nn import functional as F
 
-import vpt.torch_util as tu
-from vpt.masked_attention import MaskedAttention
-from vpt.minecraft_util import store_args
-from vpt.tree_util import tree_map
+import vpt.lib.torch_util as tu
+from vpt.lib.masked_attention import MaskedAttention
+from vpt.lib.minecraft_util import store_args
+from vpt.lib.tree_util import tree_map
 
 
 def get_module_log_keys_recursive(m: nn.Module):
