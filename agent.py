@@ -4,10 +4,10 @@ import cv2
 from gym3.types import DictType
 from gym import spaces
 
-from lib.action_mapping import CameraHierarchicalMapping
-from lib.actions import ActionTransformer
-from lib.policy import MinecraftAgentPolicy
-from lib.torch_util import default_device_type, set_default_torch_device
+from vpt.action_mapping import CameraHierarchicalMapping
+from vpt.actions import ActionTransformer
+from vpt.policy import MinecraftAgentPolicy
+from vpt.torch_util import default_device_type, set_default_torch_device
 
 
 # Hardcoded settings

@@ -21,7 +21,7 @@ import numpy as np
 
 from agent import PI_HEAD_KWARGS, MineRLAgent
 from data_loader import DataLoader
-from lib.tree_util import tree_map
+from vpt.tree_util import tree_map
 
 EPOCHS = 2
 # Needs to be <= number of videos
