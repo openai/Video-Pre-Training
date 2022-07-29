@@ -1,0 +1,1 @@
+python run_agent.py --model models/2x.model --weights models/rl-from-foundation-2x.weights

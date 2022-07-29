@@ -1,0 +1,1 @@
+python run_inverse_dynamics_model.py --weights models/4x_idm.weights --model models/4x_idm.model --video-path data/cheeky-cornflower-setter-02e496ce4abb-20220421-092639.mp4 --jsonl-path data/cheeky-cornflower-setter-02e496ce4abb-20220421-092639.jsonl --n-frames 32
