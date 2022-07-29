@@ -1,4 +1,4 @@
-
+****
 
 # Video-Pre-Training
 Video PreTraining (VPT): Learning to Act by Watching Unlabeled Online Videos
@@ -11,13 +11,13 @@ Video PreTraining (VPT): Learning to Act by Watching Unlabeled Online Videos
 
 
 # Running agent models
-
+****
 Install pre-requirements for [MineRL](https://minerl.readthedocs.io/en/v1.0.0/tutorials/index.html).
-Then install requirements with:
+Then install the vpt package after CDing into the cloned repo.
 
 ```
-pip install git+https://github.com/minerllabs/minerl@v1.0.0
-pip install -r requirements.txt
+cd Video-Pre-Training
+pip install -e ./
 ```
 
 To run the code, call
@@ -28,7 +28,7 @@ python run_agent.py --model [path to .model file] --weights [path to .weight fil
 
 After loading up, you should see a window of the agent playing Minecraft.
 
-
+There are also some `.sh` files prefixed with `demo_` for easier access. Make sure you remember to download the model files and their corresponding weights.
 
 # Agent Model Zoo
 Below are the model files and weights files for various pre-trained Minecraft models.
