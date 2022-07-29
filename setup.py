@@ -15,4 +15,5 @@ setup(
     long_description=long_description,
     packages=["vpt"],
     install_requires=requirements,
+    dependency_links=["git+https://github.com/minerllabs/minerl@v1.0.0#egg=minerl"]  # ensures `minerl` in dependencies can be resolved
 )

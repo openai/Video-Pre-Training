@@ -3,3 +3,4 @@ gym==0.19
 gym3
 attrs
 opencv-python
+minerl
