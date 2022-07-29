@@ -23,12 +23,12 @@ pip install -e ./
 To run the code, call
 
 ```
-python run_agent.py --model [path to .model file] --weights [path to .weight file]
+python vpt/run_agent.py --model [path to .model file] --weights [path to .weight file]
 ```
 
 After loading up, you should see a window of the agent playing Minecraft.
 
-There are also some `.sh` files prefixed with `demo_` for easier access. Make sure you remember to download the model files and their corresponding weights.
+There are also some `.sh` files prefixed with `demo_` inside `vpt/` for easier access. Make sure you remember to download the model files and their corresponding weights.
 
 # Agent Model Zoo
 Below are the model files and weights files for various pre-trained Minecraft models.
@@ -89,7 +89,7 @@ Setup:
 
 To run the model with above files placed in the root directory of this code:
 ```
-python run_inverse_dynamics_model.py -weights 4x_idm.weights --model 4x_idm.model --video-path cheeky-cornflower-setter-02e496ce4abb-20220421-092639.mp4 --jsonl-path cheeky-cornflower-setter-02e496ce4abb-20220421-092639.jsonl
+python vpt/run_inverse_dynamics_model.py -weights 4x_idm.weights --model 4x_idm.model --video-path cheeky-cornflower-setter-02e496ce4abb-20220421-092639.mp4 --jsonl-path cheeky-cornflower-setter-02e496ce4abb-20220421-092639.jsonl
 ```
 
 A window should pop up which shows the video frame-by-frame, showing the predicted and true (recorded) actions side-by-side on the left.
@@ -108,7 +108,7 @@ Setup:
 If you downloaded the "1x Width" models and placed some data under `data` directory, you can perform finetuning with
 
 ```
-python behavioural_cloning.py --data-dir data --in-model foundation-model-1x.model --in-weights foundation-model-1x.weights --out-weights finetuned-1x.weights
+python vpt/behavioural_cloning.py --data-dir data --in-model foundation-model-1x.model --in-weights foundation-model-1x.weights --out-weights finetuned-1x.weights
 ```
 
 You can then use `finetuned-1x.weights` when running the agent. You can change the training settings at the top of `behavioural_cloning.py`.
