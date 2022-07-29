@@ -28,7 +28,7 @@ python vpt/run_agent.py --model [path to .model file] --weights [path to .weight
 
 After loading up, you should see a window of the agent playing Minecraft.
 
-There are also some `.sh` files prefixed with `demo_` inside `vpt/` for easier access. Make sure you remember to download the model files and their corresponding weights.
+There are also some `.sh` files prefixed with `demo_` inside `vpt/scripts` for easier access. Make sure you remember to download the model files and their corresponding weights.
 
 # Agent Model Zoo
 Below are the model files and weights files for various pre-trained Minecraft models.
