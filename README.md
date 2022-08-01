@@ -411,6 +411,75 @@ For v7.x, the actions are in form
 }
 ```
 
+# BASALT 2022 dataset
+
+We also collected a dataset of demonstrations for the [MineRL BASALT 2022](https://www.aicrowd.com/challenges/neurips-2022-minerl-basalt-competition) competition, with around 150GB of data per task.
+
+**Note**: To avoid confusion with the competition rules, the action files (.jsonl) have been stripped of information that is not allowed in the competition. We will upload unmodified dataset after the competition ends.
+
+* **FindCave** [:arrow_down: index file](https://openaipublic.blob.core.windows.net/minecraft-rl/snapshots/find-cave-Jul-28.json)
+  * <details>
+    <summary>Prompt to contractors (click to show)</summary>
+
+    ```
+    Look around for a cave. When you are inside one, quit the game by opening main menu and pressing "Save and Quit To Title".
+    You are not allowed to dig down from the surface to find a cave.
+
+    Timelimit: 3 minutes.
+    Example recordings: https://www.youtube.com/watch?v=TclP_ozH-eg
+    ```
+    </details>
+* **MakeWaterfall** [:arrow_down: index file](https://openaipublic.blob.core.windows.net/minecraft-rl/snapshots/waterfall-Jul-28.json)
+  * <details>
+    <summary>Prompt to contractors (click to show)</summary>
+
+    ```
+    After spawning in a mountainous area with a water bucket and various tools, build a beautiful waterfall and then reposition yourself to “take a scenic picture” of the same waterfall, and then quit the game by opening the menu and selecting "Save and Quit to Title"
+
+    Timelimit: 5 minutes.
+    Example recordings: https://youtu.be/NONcbS85NLA
+    ```
+    </details>
+* **MakeVillageAnimalPen** [:arrow_down: index file](https://openaipublic.blob.core.windows.net/minecraft-rl/snapshots/pen-animals-Jul-28.json)
+  * <details>
+    <summary>Prompt to contractors (click to show)</summary>
+
+    ```
+    After spawning in a village, build an animal pen next to one of the houses in a village. Use your fence posts to build one animal pen that contains at least two of the same animal. (You are only allowed to pen chickens, cows, pigs, sheep or rabbits.) There should be at least one gate that allows players to enter and exit easily. The animal pen should not contain more than one type of animal. (You may kill any extra types of animals that accidentally got into the pen.) Don’t harm the village.
+    After you are done, quit the game by opening the menu and pressing "Save and Quit to Title".
+
+    You may need to terraform the area around a house to build a pen. When we say not to harm the village, examples include taking animals from existing pens, damaging existing houses or farms, and attacking villagers. Animal pens must have a single type of animal: pigs, cows, sheep, chicken or rabbits.
+
+    The food items can be used to lure in the animals: if you hold seeds in your hand, this attracts nearby chickens to you, for example.
+
+    Timelimit: 5 minutes.
+    Example recordings: https://youtu.be/SLO7sep7BO8
+    ```
+    </details>
+* **BuildVillageHouse** [:arrow_down: index file](https://openaipublic.blob.core.windows.net/minecraft-rl/snapshots/build-house-Jul-28.json)
+  * <details>
+    <summary>Prompt to contractors (click to show)</summary>
+
+    ```
+    Taking advantage of the items in your inventory, build a new house in the style of the village (random biome), in an appropriate location (e.g. next to the path through the village), without harming the village in the process.
+    Then give a brief tour of the house (i.e. spin around slowly such that all of the walls and the roof are visible).
+
+    * You start with a stone pickaxe and a stone axe, and various building blocks. It’s okay to break items that you misplaced (e.g. use the stone pickaxe to break cobblestone blocks).
+    * You are allowed to craft new blocks.
+
+    Please spend less than ten minutes constructing your house.
+
+    You don’t need to copy another house in the village exactly (in fact, we’re more interested in having slight deviations, while keeping the same "style"). You may need to terraform the area to make space for a new house.
+    When we say not to harm the village, examples include taking animals from existing pens, damaging existing houses or farms, and attacking villagers.
+
+    After you are done, quit the game by opening the menu and pressing "Save and Quit to Title".
+
+    Timelimit: 12 minutes.
+    Example recordings: https://youtu.be/WeVqQN96V_g
+    ```
+    </details>
+
+
 
 # Contribution
 This was a large effort by a dedicated team at OpenAI:
