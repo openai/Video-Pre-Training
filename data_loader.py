@@ -37,8 +37,8 @@ def composite_images_with_alpha(image1, image2, alpha, x, y):
 
     Modifies image1 in-place
     """
-    ch = min(0, image1.shape[0] - y, image2.shape[0])
-    cw = min(0, image1.shape[1] - x, image2.shape[1])
+    ch = max(0, min(image1.shape[0] - y, image2.shape[0]))
+    cw = max(0, min(image1.shape[1] - x, image2.shape[1]))
     if ch == 0 or cw == 0:
         return
     alpha = alpha[:ch, :cw]
