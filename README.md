@@ -16,7 +16,7 @@ Install pre-requirements for [MineRL](https://minerl.readthedocs.io/en/v1.0.0/tu
 Then install requirements with:
 
 ```
-pip install git+https://github.com/minerllabs/minerl@v1.0.0
+pip install git+https://github.com/minerllabs/minerl
 pip install -r requirements.txt
 ```
 
