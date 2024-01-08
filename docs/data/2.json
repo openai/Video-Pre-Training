@@ -1,0 +1,545 @@
+{
+    "200": {
+        "file_id": 10,
+        "content": "    def item_embed_id_to_name(self, item_id):\n        return mc.MINERL_ITEM_MAP[item_id]\n    def dict_to_numpy(self, acs):\n        \"\"\"\n        Env format to policy output format.\n        \"\"\"\n        act = {\n            \"buttons\": np.stack([acs.get(k, 0) for k in Buttons.ALL], axis=-1),\n            \"camera\": self.discretize_camera(acs[\"camera\"]),\n        }\n        if not self.human_spaces:\n            act.update(\n                {\n                    \"synthetic_buttons\": np.stack([acs[k] for k in SyntheticButtons.ALL], axis=-1),\n                    \"place\": self.item_embed_name_to_id(acs[\"place\"]),\n                    \"equip\": self.item_embed_name_to_id(acs[\"equip\"]),\n                    \"craft\": self.item_embed_name_to_id(acs[\"craft\"]),\n                }\n            )\n        return act\n    def numpy_to_dict(self, acs):\n        \"\"\"\n        Numpy policy output to env-compatible format.\n        \"\"\"\n        assert acs[\"buttons\"].shape[-1] == len(\n            Buttons.ALL\n        ), f\"Mismatched actions: {acs}; expected {len(Buttons.ALL)}:\\n(  {Buttons.ALL})\"",
+        "type": "code",
+        "location": "/lib/actions.py:132-160"
+    },
+    "201": {
+        "file_id": 10,
+        "content": "The code contains three functions:\n\n1. item_embed_id_to_name(): This function converts an item ID to its name using the mc.MINERL_ITEM_MAP dictionary.\n2. dict_to_numpy(): This function transforms environment format data to policy output format, creating a dictionary \"act\" containing buttons and camera values in numpy array format. If human-spaces is False, it adds synthetic_buttons, place, equip, and craft values as well.\n3. numpy_to_dict(): This function converts numpy policy output to an environment-compatible format, ensuring the buttons shape matches the expected size.",
+        "type": "comment"
+    },
+    "202": {
+        "file_id": 10,
+        "content": "        out = {name: acs[\"buttons\"][..., i] for (i, name) in enumerate(Buttons.ALL)}\n        out[\"camera\"] = self.undiscretize_camera(acs[\"camera\"])\n        return out\n    def policy2env(self, acs):\n        acs = self.numpy_to_dict(acs)\n        return acs\n    def env2policy(self, acs):\n        nbatch = acs[\"camera\"].shape[0]\n        dummy = np.zeros((nbatch,))\n        out = {\n            \"camera\": self.discretize_camera(acs[\"camera\"]),\n            \"buttons\": np.stack([acs.get(k, dummy) for k in Buttons.ALL], axis=-1),\n        }\n        return out",
+        "type": "code",
+        "location": "/lib/actions.py:161-178"
+    },
+    "203": {
+        "file_id": 10,
+        "content": "The code defines three methods: \"undiscretize_camera\", \"numpy_to_dict\", and \"discretize_camera\". It converts a camera array to its undiscretized form, converts numpy arrays to dictionaries, and converts an undiscretized camera array back into discretized form, respectively.",
+        "type": "comment"
+    },
+    "204": {
+        "file_id": 11,
+        "content": "/lib/impala_cnn.py",
+        "type": "filepath"
+    },
+    "205": {
+        "file_id": 11,
+        "content": "The ImpalaCNN architecture is created with optional group normalization, allowing for customizable input shape, downsample stacks, output hidden size, and residual blocks per stack. It inherits from a base class and utilizes 2D convolutional layers for multi-stack classification models.",
+        "type": "summary"
+    },
+    "206": {
+        "file_id": 11,
+        "content": "import math\nfrom copy import deepcopy\nfrom typing import Dict, List, Optional\nfrom torch import nn\nfrom torch.nn import functional as F\nfrom lib import misc\nfrom lib import torch_util as tu\nfrom lib.util import FanInInitReLULayer\nclass CnnBasicBlock(nn.Module):\n    \"\"\"\n    Residual basic block, as in ImpalaCNN. Preserves channel number and shape\n    :param inchan: number of input channels\n    :param init_scale: weight init scale multiplier\n    \"\"\"\n    def __init__(\n        self,\n        inchan: int,\n        init_scale: float = 1,\n        log_scope=\"\",\n        init_norm_kwargs: Dict = {},\n        **kwargs,\n    ):\n        super().__init__()\n        self.inchan = inchan\n        s = math.sqrt(init_scale)\n        self.conv0 = FanInInitReLULayer(\n            self.inchan,\n            self.inchan,\n            kernel_size=3,\n            padding=1,\n            init_scale=s,\n            log_scope=f\"{log_scope}/conv0\",\n            **init_norm_kwargs,\n        )\n        self.conv1 = FanInInitReLULayer(\n            self.inchan,\n            self.inchan,",
+        "type": "code",
+        "location": "/lib/impala_cnn.py:1-42"
+    },
+    "207": {
+        "file_id": 11,
+        "content": "This code defines a CnnBasicBlock class for ImpalaCNN, which is a residual basic block that preserves the number of input channels and the shape. It uses FanInInitReLULayer for the convolutional layers and allows adjusting weight initialization scale, log scope, and initialization normalization parameters.",
+        "type": "comment"
+    },
+    "208": {
+        "file_id": 11,
+        "content": "            kernel_size=3,\n            padding=1,\n            init_scale=s,\n            log_scope=f\"{log_scope}/conv1\",\n            **init_norm_kwargs,\n        )\n    def forward(self, x):\n        x = x + self.conv1(self.conv0(x))\n        return x\nclass CnnDownStack(nn.Module):\n    \"\"\"\n    Downsampling stack from Impala CNN.\n    :param inchan: number of input channels\n    :param nblock: number of residual blocks after downsampling\n    :param outchan: number of output channels\n    :param init_scale: weight init scale multiplier\n    :param pool: if true, downsample with max pool\n    :param post_pool_groups: if not None, normalize with group norm with this many groups\n    :param kwargs: remaining kwargs are passed into the blocks and layers\n    \"\"\"\n    name = \"Impala_CnnDownStack\"\n    def __init__(\n        self,\n        inchan: int,\n        nblock: int,\n        outchan: int,\n        init_scale: float = 1,\n        pool: bool = True,\n        post_pool_groups: Optional[int] = None,\n        log_scope: str = \"\",\n        init_norm_kwargs: Dict = {},",
+        "type": "code",
+        "location": "/lib/impala_cnn.py:43-78"
+    },
+    "209": {
+        "file_id": 11,
+        "content": "This code defines two classes: `ImpalaCnnConv1d` and `CnnDownStack`. The `ImpalaCnnConv1d` class represents a 1-dimensional convolutional layer with specific parameters, while the `CnnDownStack` class is a stack of downsampling blocks using the `ImpalaCnnConv1d` as the base. These classes are used for image classification tasks following the Impala CNN architecture.",
+        "type": "comment"
+    },
+    "210": {
+        "file_id": 11,
+        "content": "        first_conv_norm=False,\n        **kwargs,\n    ):\n        super().__init__()\n        self.inchan = inchan\n        self.outchan = outchan\n        self.pool = pool\n        first_conv_init_kwargs = deepcopy(init_norm_kwargs)\n        if not first_conv_norm:\n            first_conv_init_kwargs[\"group_norm_groups\"] = None\n            first_conv_init_kwargs[\"batch_norm\"] = False\n        self.firstconv = FanInInitReLULayer(\n            inchan,\n            outchan,\n            kernel_size=3,\n            padding=1,\n            log_scope=f\"{log_scope}/firstconv\",\n            **first_conv_init_kwargs,\n        )\n        self.post_pool_groups = post_pool_groups\n        if post_pool_groups is not None:\n            self.n = nn.GroupNorm(post_pool_groups, outchan)\n        self.blocks = nn.ModuleList(\n            [\n                CnnBasicBlock(\n                    outchan,\n                    init_scale=init_scale / math.sqrt(nblock),\n                    log_scope=f\"{log_scope}/block{i}\",\n                    init_norm_kwargs=init_norm_kwargs,",
+        "type": "code",
+        "location": "/lib/impala_cnn.py:79-107"
+    },
+    "211": {
+        "file_id": 11,
+        "content": "This code initializes a CNN architecture with optional group normalization. It takes parameters such as input and output channels, pooling size, and whether to use group normalization for the first convolution layer or not. The code also includes a list of blocks, where each block is an instance of CnnBasicBlock.",
+        "type": "comment"
+    },
+    "212": {
+        "file_id": 11,
+        "content": "                    **kwargs,\n                )\n                for i in range(nblock)\n            ]\n        )\n    def forward(self, x):\n        x = self.firstconv(x)\n        if self.pool:\n            x = F.max_pool2d(x, kernel_size=3, stride=2, padding=1)\n            if self.post_pool_groups is not None:\n                x = self.n(x)\n        x = tu.sequential(self.blocks, x, diag_name=self.name)\n        return x\n    def output_shape(self, inshape):\n        c, h, w = inshape\n        assert c == self.inchan\n        if self.pool:\n            return (self.outchan, (h + 1) // 2, (w + 1) // 2)\n        else:\n            return (self.outchan, h, w)\nclass ImpalaCNN(nn.Module):\n    \"\"\"\n    :param inshape: input image shape (height, width, channels)\n    :param chans: number of residual downsample stacks. Each element is the number of\n        filters per convolution in the stack\n    :param outsize: output hidden size\n    :param nblock: number of residual blocks per stack. Each block has 2 convs and a residual\n    :param init_norm_kwargs: arguments to be passed to convolutional layers. Options can be found",
+        "type": "code",
+        "location": "/lib/impala_cnn.py:108-139"
+    },
+    "213": {
+        "file_id": 11,
+        "content": "This code defines a class for an ImpalaCNN model, which is a residual convolutional neural network. The constructor takes input image shape, number of residual downsample stacks, output hidden size, and number of residual blocks per stack as parameters. The forward method performs the forward pass through the network, and the output_shape method returns the expected output shape given the input shape.",
+        "type": "comment"
+    },
+    "214": {
+        "file_id": 11,
+        "content": "        in ypt.model.util:FanInInitReLULayer\n    :param dense_init_norm_kwargs: arguments to be passed to convolutional layers. Options can be found\n        in ypt.model.util:FanInInitReLULayer\n    :param kwargs: remaining kwargs are passed into the CnnDownStacks\n    \"\"\"\n    name = \"ImpalaCNN\"\n    def __init__(\n        self,\n        inshape: List[int],\n        chans: List[int],\n        outsize: int,\n        nblock: int,\n        init_norm_kwargs: Dict = {},\n        dense_init_norm_kwargs: Dict = {},\n        first_conv_norm=False,\n        **kwargs,\n    ):\n        super().__init__()\n        h, w, c = inshape\n        curshape = (c, h, w)\n        self.stacks = nn.ModuleList()\n        for i, outchan in enumerate(chans):\n            stack = CnnDownStack(\n                curshape[0],\n                nblock=nblock,\n                outchan=outchan,\n                init_scale=math.sqrt(len(chans)),\n                log_scope=f\"downstack{i}\",\n                init_norm_kwargs=init_norm_kwargs,\n                first_conv_norm=first_conv_norm if i == 0 else True,",
+        "type": "code",
+        "location": "/lib/impala_cnn.py:140-171"
+    },
+    "215": {
+        "file_id": 11,
+        "content": "This code defines a class called \"ImpalaCNN\" which inherits from the base class. It takes in parameters such as input shape, number of channels, output size, number of blocks, initialization arguments for normalization layers, and additional keyword arguments. The class initializes a list of CNN downstack modules and sets their configurations based on the input parameters.",
+        "type": "comment"
+    },
+    "216": {
+        "file_id": 11,
+        "content": "                **kwargs,\n            )\n            self.stacks.append(stack)\n            curshape = stack.output_shape(curshape)\n        self.dense = FanInInitReLULayer(\n            misc.intprod(curshape),\n            outsize,\n            layer_type=\"linear\",\n            log_scope=\"imapala_final_dense\",\n            init_scale=1.4,\n            **dense_init_norm_kwargs,\n        )\n        self.outsize = outsize\n    def forward(self, x):\n        b, t = x.shape[:-3]\n        x = x.reshape(b * t, *x.shape[-3:])\n        x = misc.transpose(x, \"bhwc\", \"bchw\")\n        x = tu.sequential(self.stacks, x, diag_name=self.name)\n        x = x.reshape(b, t, *x.shape[1:])\n        x = tu.flatten_image(x)\n        x = self.dense(x)\n        return x",
+        "type": "code",
+        "location": "/lib/impala_cnn.py:172-195"
+    },
+    "217": {
+        "file_id": 11,
+        "content": "This code initializes a CNN model with multiple stacked 2D convolutional layers. The output of each stack is used as input to the next stack until the final dense layer for classification.",
+        "type": "comment"
+    },
+    "218": {
+        "file_id": 12,
+        "content": "/lib/masked_attention.py",
+        "type": "filepath"
+    },
+    "219": {
+        "file_id": 12,
+        "content": "The function develops a Masked Attention mechanism for time series data, incorporating parameters and considerations such as input size and mask type, and initializes an object for the masked attention based on these parameters. It defines a Masked Attention class with methods for state initialization, forward propagation, and handling causal masking, returning output and state information.",
+        "type": "summary"
+    },
+    "220": {
+        "file_id": 12,
+        "content": "import functools\nimport torch as th\nfrom torch import nn\nimport lib.xf as xf\nfrom lib.minecraft_util import store_args\nfrom lib.tree_util import tree_map\n@functools.lru_cache()\ndef get_band_diagonal_mask(t: int, T: int, maxlen: int, batchsize: int, device: th.device) -> th.Tensor:\n    \"\"\"Returns a band diagonal mask which is causal (upper triangle is masked)\n    and such that any frame can only view up to maxlen total past frames\n    including the current frame.\n    Example Masks: Here 0 means that frame is masked and we mask it by adding a huge number to the attention logits (see orc.xf)\n        t = 3, T = 3, maxlen = 3\n          T\n        t 1 0 0 |  mask out T > t\n          1 1 0 |\n          1 1 1 |\n        t = 3, T = 6, maxlen = 3\n        t 0 1 1 1 0 0 |  mask out T > t\n          0 0 1 1 1 0 |\n          0 0 0 1 1 1 |\n    Args:\n        t: number of rows (presumably number of frames recieving gradient)\n        T: number of cols (presumably t + past context that isn't being gradient updated)\n        maxlen: maximum number of frames (including current frame) any frame can attend to",
+        "type": "code",
+        "location": "/lib/masked_attention.py:1-31"
+    },
+    "221": {
+        "file_id": 12,
+        "content": "This function returns a band diagonal mask for time series data, ensuring the attention is causal and limited to a specific maximum length. The mask is created based on the number of rows (frames receiving gradient) and columns (total frames including past context).",
+        "type": "comment"
+    },
+    "222": {
+        "file_id": 12,
+        "content": "        batchsize: number of masks to return\n        device: torch device to place mask on\n    Returns:\n        Boolean mask of shape (batchsize, t, T)\n    \"\"\"\n    m = th.ones(t, T, dtype=bool)\n    m.tril_(T - t)  # Mask out upper triangle\n    if maxlen is not None and maxlen < T:  # Mask out lower triangle\n        m.triu_(T - t - maxlen + 1)\n    m_btT = m[None].repeat_interleave(batchsize, dim=0)\n    m_btT = m_btT.to(device=device)\n    return m_btT\ndef get_mask(first_b11: th.Tensor, state_mask: th.Tensor, t: int, T: int, maxlen: int, heads: int, device) -> th.Tensor:\n    \"\"\"Returns a band diagonal mask that respects masking past states (columns 0:T-t inclusive)\n        if first_b11 is True. See get_band_diagonal_mask for how the base mask is computed.\n        This function takes that mask and first zeros out any past context if first_b11 is True.\n        Say our context is in chunks of length t (so here T = 4t). We see that in the second batch we recieved first=True\n        context     t t t t\n        first       F T F F",
+        "type": "code",
+        "location": "/lib/masked_attention.py:32-54"
+    },
+    "223": {
+        "file_id": 12,
+        "content": "This function takes the masked_attention function from Video-Pre-Training/lib/masked_attention.py and generates a Boolean mask of shape (batchsize, t, T) based on the given parameters. The mask will have the upper triangle and lower triangle (if maxlen is not None) masked out. The get_mask function takes additional parameters and returns a band diagonal mask that respects the masking past states if first_b11 is True, by zeros any past context.",
+        "type": "comment"
+    },
+    "224": {
+        "file_id": 12,
+        "content": "        Now, given this the mask should mask out anything prior to T < t; however since we don't have access to the past first_b11's\n        we need to keep a state of the mask at those past timesteps. This is what state_mask is.\n        In particular state_mask is a [b, t, T - t] mask matrix that contains the mask for the past T - t frames.\n    Args: (See get_band_diagonal_mask for remaining args)\n        first_b11: boolean tensor with shape [batchsize, 1, 1] indicating if the first timestep for each batch element had first=True\n        state_mask: mask tensor of shape [b, t, T - t]\n        t: number of mask rows (presumably number of frames for which we take gradient)\n        T: number of mask columns (t + the number of past frames we keep in context)\n        maxlen: actual context length\n        heads: number of attention heads\n        device: torch device\n    Returns:\n        m_btT: Boolean mask of shape (batchsize * heads, t, T)\n        state_mask: updated state_mask\n    \"\"\"\n    b = first_b11.shape[0]",
+        "type": "code",
+        "location": "/lib/masked_attention.py:55-73"
+    },
+    "225": {
+        "file_id": 12,
+        "content": "This function receives various inputs including `first_b11`, `state_mask`, `t`, `T`, `maxlen`, `heads`, and `device`. It will return a Boolean mask of shape (batchsize * heads, t, T) and an updated state_mask. The purpose of this function is to update the state_mask based on the given inputs for the masked attention mechanism.",
+        "type": "comment"
+    },
+    "226": {
+        "file_id": 12,
+        "content": "    if state_mask is None:\n        state_mask = th.zeros((b, 1, T - t), dtype=bool, device=device)\n    m_btT = get_band_diagonal_mask(t, T, maxlen, b, device).clone()  # Should be shape B, t, T\n    not_first = ~first_b11.to(device=device)\n    m_btT[:, :, :-t] &= not_first  # Zero out anything in the past if first is true\n    m_btT[:, :, :-t] &= state_mask\n    m_bhtT = m_btT[:, None].repeat_interleave(heads, dim=1)\n    m_btT = m_bhtT.reshape((b * heads), t, T)\n    # Update state_mask such that it reflects the most recent first\n    state_mask = th.cat(\n        [\n            state_mask[:, :, t:] & not_first,\n            th.ones((b, 1, min(t, T - t)), dtype=bool, device=device),\n        ],\n        dim=-1,\n    )\n    return m_btT, state_mask\nclass MaskedAttention(nn.Module):\n    \"\"\"\n    Transformer self-attention layer that removes frames from previous episodes from the hidden state under certain constraints.\n    The constraints are:\n    - The \"first\" flag can only be true for the first timestep of each batch. An assert will fire if other timesteps have first = True.",
+        "type": "code",
+        "location": "/lib/masked_attention.py:75-102"
+    },
+    "227": {
+        "file_id": 12,
+        "content": "This code is creating a mask for self-attention in transformer layers. It ensures that frames from previous episodes are not considered in the attention calculation for each episode. The mask is generated based on the \"first\" flag, which indicates if it's the first timestep of each batch, and the state_mask to exclude past frames.",
+        "type": "comment"
+    },
+    "228": {
+        "file_id": 12,
+        "content": "    input_size: The dimension of the input (which also happens to be the size of the output)\n    memory_size: The number of frames to keep in the inner state. Note that when attending, we will be able to attend\n                 to both the frames in the inner state (which presumably won't have gradients anymore) and the frames\n                 in the batch. \"mask\" for some additional considerations on this.\n    heads: The number of attention heads to use. Note that we will split the input into this number of heads, so\n           input_size needs to be divisible by heads.\n    timesteps: number of timesteps with which we'll be taking gradient\n    mask: Can be \"none\" or \"clipped_causal\". \"clipped_causal\" is a normal causal mask but solves the following minor problem:\n        if you have a state of length 128 and a batch of 128 frames, then the first frame of your batch will be able to\n        attend to 128 previous frames, but the last one will be able to attend to 255 previous frames. In this example,",
+        "type": "code",
+        "location": "/lib/masked_attention.py:104-113"
+    },
+    "229": {
+        "file_id": 12,
+        "content": "The code is describing the parameters and considerations of a masked attention mechanism. The input size, memory size, number of heads, timesteps, and mask are explained. The memory size allows attending to both inner state frames and batch frames, while the mask option handles potential imbalances between the first and last frames' attending capabilities.",
+        "type": "comment"
+    },
+    "230": {
+        "file_id": 12,
+        "content": "        \"clipped_causal\" will make it so that the last frame can only attend to 128 previous frames, so that there is no\n        bias coming from the position in the batch. None simply allows you to attend to any frame in the state + batch,\n        which means you can also attend to future frames.\n    \"\"\"\n    @store_args\n    def __init__(\n        self,\n        input_size,\n        memory_size: int,\n        heads: int,\n        timesteps: int,\n        mask: str = \"clipped_causal\",\n        init_scale=1,\n        norm=\"none\",\n        log_scope=\"sa\",\n        use_muP_factor=False,\n    ):\n        super().__init__()\n        assert mask in {\"none\", \"clipped_causal\"}\n        assert memory_size >= 0\n        self.maxlen = memory_size - timesteps\n        if mask == \"none\":\n            mask = None\n        self.orc_attn = xf.All2All(heads, self.maxlen, mask=mask is not None)\n        self.orc_block = xf.SelfAttentionLayer(\n            input_size,\n            self.orc_attn,\n            scale=init_scale,\n            relattn=True,\n            cache_keep_len=self.maxlen,",
+        "type": "code",
+        "location": "/lib/masked_attention.py:114-147"
+    },
+    "231": {
+        "file_id": 12,
+        "content": "The function initializes an object for masked attention. It takes in parameters such as input size, memory size, number of heads, timesteps, and a mask option ('clipped_causal' or 'none'). The maximum length is calculated based on the memory size and timesteps. If the mask option is set to 'none', the mask parameter is set to None. An All2All object for attention is created with heads, maxlen, and the mask value. Finally, a SelfAttentionLayer object is initialized with input size, the All2All attention object, and other parameters such as scale, relattn, and cache_keep_len set accordingly.",
+        "type": "comment"
+    },
+    "232": {
+        "file_id": 12,
+        "content": "            norm=norm,\n            log_scope=log_scope,\n            use_muP_factor=use_muP_factor,\n        )\n    def initial_state(self, batchsize: int, device=None):\n        \"\"\"Return the initial state mask (None) and the initial state of the transformer (zerod out keys and queries)\"\"\"\n        state = self.orc_block.initial_state(batchsize, initial_T=self.maxlen)\n        state_mask = None\n        if device is not None:\n            state = tree_map(lambda x: x.to(device), state)\n        return state_mask, state\n    def forward(self, input_bte, first_bt, state):\n        \"\"\"Forward propagation of a single layer\"\"\"\n        state_mask, xf_state = state\n        t = first_bt.shape[1]\n        if self.mask == \"clipped_causal\":\n            new_mask, state_mask = get_mask(\n                first_b11=first_bt[:, [[0]]],\n                state_mask=state_mask,\n                t=t,\n                T=t + self.maxlen,\n                maxlen=self.maxlen,\n                heads=self.heads,\n                device=input_bte.device,",
+        "type": "code",
+        "location": "/lib/masked_attention.py:148-173"
+    },
+    "233": {
+        "file_id": 12,
+        "content": "This code defines a class for Masked Attention, which has methods for initializing the state, forward propagation of a single layer, and defining the mask type. The initial_state method returns the initial state mask (None) and the initial state of the transformer with keys and queries zeros out. The forward method performs forward propagation of a single layer using the input, first_bt, and state as inputs. If the mask type is \"clipped_causal\", it applies a specific mask to the input.",
+        "type": "comment"
+    },
+    "234": {
+        "file_id": 12,
+        "content": "            )\n            self.orc_block.attn.mask = new_mask\n        output, xf_state = self.orc_block(input_bte, xf_state)\n        return output, (state_mask, xf_state)\n    def get_log_keys(self):\n        # These are logged in xf.SelfAttentionLayer\n        return [f\"activation_{stat}/{self.log_scope}/{k}\" for k in [\"K\", \"Q\", \"V\", \"A\", \"Aproj\"] for stat in [\"mean\", \"std\"]]",
+        "type": "code",
+        "location": "/lib/masked_attention.py:174-182"
+    },
+    "235": {
+        "file_id": 12,
+        "content": "This code is defining a method in the class and returning comments for the code block. The method seems to be related to attention mechanism, where it applies masking to the input and returns output and state information. The log keys are defined as well for further logging purposes.",
+        "type": "comment"
+    },
+    "236": {
+        "file_id": 13,
+        "content": "/lib/minecraft_util.py",
+        "type": "filepath"
+    },
+    "237": {
+        "file_id": 13,
+        "content": "The code uses a decorator function to compute normalized entropy from categorical head outputs, considering masks and ignoring single-option cases. It also calculates the entropy of categorical and diagonal Gaussian action heads within a module by iterating over key-value pairs and returns average entropy.",
+        "type": "summary"
+    },
+    "238": {
+        "file_id": 13,
+        "content": "import functools\nimport inspect\nfrom typing import Optional, Tuple\nimport numpy as np\nimport torch\nfrom lib.action_head import (CategoricalActionHead, DiagGaussianActionHead,\n                             DictActionHead)\ndef store_args(method):\n    \"\"\"Stores provided method args as instance attributes.\"\"\"\n    argspec = inspect.getfullargspec(method)\n    defaults = {}\n    if argspec.defaults is not None:\n        defaults = dict(zip(argspec.args[-len(argspec.defaults) :], argspec.defaults))\n    if argspec.kwonlydefaults is not None:\n        defaults.update(argspec.kwonlydefaults)\n    arg_names = argspec.args[1:]\n    @functools.wraps(method)\n    def wrapper(*positional_args, **keyword_args):\n        self = positional_args[0]\n        # Get default arg values\n        args = defaults.copy()\n        # Add provided arg values\n        for name, value in zip(arg_names, positional_args[1:]):\n            args[name] = value\n        args.update(keyword_args)\n        self.__dict__.update(args)\n        return method(*positional_args, **keyword_args)",
+        "type": "code",
+        "location": "/lib/minecraft_util.py:1-32"
+    },
+    "239": {
+        "file_id": 13,
+        "content": "This code defines a decorator function `store_args` that takes a method as input, and when the decorated method is called, it stores its arguments as instance attributes of the class. It also handles default argument values and keyword-only arguments.",
+        "type": "comment"
+    },
+    "240": {
+        "file_id": 13,
+        "content": "    return wrapper\ndef get_norm_entropy_from_cat_head(module, name, masks, logits):\n    # Note that the mask has already been applied to the logits at this point\n    entropy = -torch.sum(torch.exp(logits) * logits, dim=-1)\n    if name in masks:\n        n = torch.sum(masks[name], dim=-1, dtype=torch.float)\n        norm_entropy = entropy / torch.log(n)\n        # When the mask only allows one option the normalized entropy makes no sense\n        # as it is basically both maximal (the distribution is as uniform as it can be)\n        # and minimal (there is no variance at all).\n        # A such, we ignore them for purpose of calculating entropy.\n        zero = torch.zeros_like(norm_entropy)\n        norm_entropy = torch.where(n.eq(1.0), zero, norm_entropy)\n        count = n.not_equal(1.0).int()\n    else:\n        n = torch.tensor(logits.shape[-1], dtype=torch.float)\n        norm_entropy = entropy / torch.log(n)\n        count = torch.ones_like(norm_entropy, dtype=torch.int)\n    # entropy is per-entry, still of size self.output_shape[:-1]; we need to reduce of the rest of it.",
+        "type": "code",
+        "location": "/lib/minecraft_util.py:34-55"
+    },
+    "241": {
+        "file_id": 13,
+        "content": "This code calculates the normalized entropy from categorical head outputs and applies a mask if necessary. It divides the entropy by the log of the number of possible options, ignoring cases where only one option is available to avoid nonsense results. The count variable keeps track of how many times the condition for ignoring an option has been met.",
+        "type": "comment"
+    },
+    "242": {
+        "file_id": 13,
+        "content": "    for _ in module.output_shape[:-1]:\n        norm_entropy = norm_entropy.sum(dim=-1)\n        count = count.sum(dim=-1)\n    return norm_entropy, count\ndef get_norm_cat_entropy(module, masks, logits, template) -> Tuple[torch.Tensor, torch.Tensor]:\n    entropy_sum = torch.zeros_like(template, dtype=torch.float)\n    counts = torch.zeros_like(template, dtype=torch.int)\n    for k, subhead in module.items():\n        if isinstance(subhead, DictActionHead):\n            entropy, count = get_norm_cat_entropy(subhead, masks, logits[k], template)\n        elif isinstance(subhead, CategoricalActionHead):\n            entropy, count = get_norm_entropy_from_cat_head(subhead, k, masks, logits[k])\n        else:\n            continue\n        entropy_sum += entropy\n        counts += count\n    return entropy_sum, counts\ndef get_diag_guassian_entropy(module, logits, template) -> Optional[torch.Tensor]:\n    entropy_sum = torch.zeros_like(template, dtype=torch.float)\n    count = torch.zeros(1, device=template.device, dtype=torch.int)",
+        "type": "code",
+        "location": "/lib/minecraft_util.py:56-79"
+    },
+    "243": {
+        "file_id": 13,
+        "content": "This code calculates the entropy of categorical and diagonal Gaussian action heads in a given module and returns the total entropy and counts.",
+        "type": "comment"
+    },
+    "244": {
+        "file_id": 13,
+        "content": "    for k, subhead in module.items():\n        if isinstance(subhead, DictActionHead):\n            entropy_sum += get_diag_guassian_entropy(subhead, logits[k], template)\n        elif isinstance(subhead, DiagGaussianActionHead):\n            entropy_sum += module.entropy(logits)\n        else:\n            continue\n        count += 1\n    return entropy_sum / count",
+        "type": "code",
+        "location": "/lib/minecraft_util.py:80-88"
+    },
+    "245": {
+        "file_id": 13,
+        "content": "Iterates over each key-value pair in the module, adds entropy from DiagGaussianActionHead or DictActionHead to entropy_sum, and returns the average entropy.",
+        "type": "comment"
+    },
+    "246": {
+        "file_id": 14,
+        "content": "/lib/misc.py",
+        "type": "filepath"
+    },
+    "247": {
+        "file_id": 14,
+        "content": "Both comments discuss data processing tasks, with Comment A focusing on calculating and dividing products in a list 'x', while Comment B describes a function for reshaping input data, considering exceptions and undo functions, and utilizing a 'known' dictionary for shape inference.",
+        "type": "summary"
+    },
+    "248": {
+        "file_id": 14,
+        "content": "import numpy as np\nimport torch as th\ndef intprod(xs):\n    \"\"\"\n    Product of a sequence of integers\n    \"\"\"\n    out = 1\n    for x in xs:\n        out *= x\n    return out\ndef safezip(*args):\n    \"\"\"\n    Check that lengths of sequences are the same, then zip them\n    \"\"\"\n    args = [list(a) for a in args]\n    n = len(args[0])\n    for arg in args[1:]:\n        assert len(arg) == n, f\"length mismatch: {list(map(len, args))}\"\n    return list(zip(*args))\ndef transpose(x, before, after):\n    \"\"\"\n    Usage: x_bca = transpose(x_abc, 'abc', 'bca')\n    \"\"\"\n    assert sorted(before) == sorted(after), f\"cannot transpose {before} to {after}\"\n    assert x.ndim == len(\n        before\n    ), f\"before spec '{before}' has length {len(before)} but x has {x.ndim} dimensions: {tuple(x.shape)}\"\n    return x.permute(tuple(before.index(i) for i in after))\ndef transpose_undo(x, before, after, *, undo=None):\n    \"\"\"\n    Usage:\n    x_bca, undo = transpose_undo(x_abc, 'abc', 'bca')\n    x_bca = fully_connected_layer(x_bca)\n    x_abc = undo(x_bca)\n    \"\"\"",
+        "type": "code",
+        "location": "/lib/misc.py:1-43"
+    },
+    "249": {
+        "file_id": 14,
+        "content": "The code contains several functions related to data manipulation, such as calculating the product of a sequence of integers (`intprod`), checking and zipping lengths of sequences (`safezip`), transposing data with given before and after specifications (`transpose`), and undoing a data transposition (`transpose_undo`).",
+        "type": "comment"
+    },
+    "250": {
+        "file_id": 14,
+        "content": "    return (\n        transpose(x, before, after),\n        compose_undo(undo, lambda x: transpose(x, before=after, after=before)),\n    )\ndef compose_undo(u1, u2):\n    assert u2 is not None\n    if u1 is None:\n        return u2\n    def u(x):\n        x = u2(x)\n        x = u1(x)\n        return x\n    return u\nNO_BIND = \"__nobind\"\ndef _parse_reshape_str(s, kind):\n    assert kind in (\"before\", \"after\")\n    result = []\n    n_underscores = 0\n    for i, part in enumerate(s.split(\",\")):\n        part = part.strip()\n        if part == \"?\" and kind == \"before\":\n            result.append([f\"__{i}\"])\n        elif part == \"_\":\n            result.append([f\"{NO_BIND}_{n_underscores}\"])\n            n_underscores += 1\n        else:\n            result.append([term.strip() for term in part.split(\"*\")])\n    return result\ndef _infer_part(part, concrete_dim, known, index, full_shape):\n    if type(part) is int:\n        return part\n    assert isinstance(part, list), part\n    lits = []\n    syms = []\n    for term in part:\n        if type(term) is int:",
+        "type": "code",
+        "location": "/lib/misc.py:44-89"
+    },
+    "251": {
+        "file_id": 14,
+        "content": "Function `transpose` takes an input tensor, and a list of tuples specifying the axes to permute. It returns the transposed tensor and a function that undoes the transpose operation.\nFunction `compose_undo` combines two transformation functions into a single one that applies them in reverse order. If either is None, it simply returns the other. Otherwise, it creates an anonymous function that first applies the second transformation, then the first, and finally returns the result.\nString `NO_BIND` is used as a placeholder when a dimension cannot be bound to a specific variable.\nFunction `_parse_reshape_str` parses a string of the form \"x,*y,?z\" where x, y, and z are integers or '?' symbols. It returns a list containing three lists: the first contains '?' characters for 'before', '_' characters for 'after', and actual numbers for 'none'. The second contains actual numbers for 'before', and the third contains actual numbers for 'after'.\nFunction `_infer_part` infers the part of the tensor shape to be used based on the type of the input. If it is an integer, it returns that integer. Otherwise, it processes a list of terms, handling integers and strings containing '*' symbols differently.",
+        "type": "comment"
+    },
+    "252": {
+        "file_id": 14,
+        "content": "            lits.append(term)\n        elif type(term) is str:\n            syms.append(term)\n        else:\n            raise TypeError(f\"got {type(term)} but expected int or str\")\n    int_part = 1\n    for x in lits:\n        int_part *= x\n    if len(syms) == 0:\n        return int_part\n    elif len(syms) == 1 and concrete_dim is not None:\n        assert concrete_dim % int_part == 0, f\"{concrete_dim} % {int_part} != 0 (at index {index}, full shape is {full_shape})\"\n        v = concrete_dim // int_part\n        if syms[0] in known:\n            assert (\n                known[syms[0]] == v\n            ), f\"known value for {syms[0]} is {known[syms[0]]} but found value {v} at index {index} (full shape is {full_shape})\"\n        else:\n            known[syms[0]] = v\n        return concrete_dim\n    else:\n        for i in range(len(syms)):\n            if syms[i] in known:\n                syms[i] = known[syms[i]]\n            else:\n                try:\n                    syms[i] = int(syms[i])\n                except ValueError:\n                    pass",
+        "type": "code",
+        "location": "/lib/misc.py:90-118"
+    },
+    "253": {
+        "file_id": 14,
+        "content": "This function takes a term, checks if it's an int or str, and performs calculations based on the input type. If int, it multiplies all literals (int or float) and returns the result. If str, it checks if there's only one symbol and concrete_dim is given. It asserts that concrete_dim is divisible by int_part and calculates v. If the symbol is already in known values, it asserts the known value matches. If not, it adds the symbol to known with its calculated value. Finally, if there are multiple symbols, it iterates through them and converts strings to ints.",
+        "type": "comment"
+    },
+    "254": {
+        "file_id": 14,
+        "content": "        return lits + syms\ndef _infer_step(args):\n    known, desc, shape = args\n    new_known = known.copy()\n    new_desc = desc.copy()\n    for i in range(len(desc)):\n        if shape is None:\n            concrete_dim = None\n        else:\n            concrete_dim = shape[i]\n        new_desc[i] = _infer_part(part=desc[i], concrete_dim=concrete_dim, known=new_known, index=i, full_shape=shape)\n    return new_known, new_desc, shape\ndef _infer(known, desc, shape):\n    if shape is not None:\n        assert len(desc) == len(shape), f\"desc has length {len(desc)} but shape has length {len(shape)} (shape={shape})\"\n    known, desc, shape = fixed_point(_infer_step, (known, desc, shape))\n    return desc, known\ndef fixed_point(f, x, eq=None):\n    if eq is None:\n        eq = lambda a, b: a == b\n    while True:\n        new_x = f(x)\n        if eq(x, new_x):\n            return x\n        else:\n            x = new_x\ndef _infer_question_mark(x, total_product):\n    try:\n        question_mark_index = x.index([\"?\"])\n    except ValueError:\n        return x",
+        "type": "code",
+        "location": "/lib/misc.py:119-157"
+    },
+    "255": {
+        "file_id": 14,
+        "content": "This function takes an existing list `lits` and a symbol `syms` and returns a new list where the `syms` occur after all elements in `lits`. The `_infer_step()` function takes known values, description, and shape as arguments. It creates copies of the new known and description lists and loops through each element in the description list. If a specific shape is provided, it assigns the corresponding dimension to `concrete_dim`. Then, it calls `_infer_part()` with the part, concrete dimension, known values, index, and full shape as arguments. The function returns the new known values, description list, and shape. The `fixed_point()` function uses a lambda function to check for equality between two inputs. It continues to apply the given function to the input until it reaches a fixed point where the input remains unchanged. Lastly, `_infer_question_mark()` function tries to find the index of \"?\" in the list and returns the list if found.",
+        "type": "comment"
+    },
+    "256": {
+        "file_id": 14,
+        "content": "    observed_product = 1\n    for i in range(len(x)):\n        if i != question_mark_index:\n            assert type(x[i]) is int, f\"when there is a question mark, there can be no other unknown values (full list: {x})\"\n            observed_product *= x[i]\n    assert (\n        observed_product and total_product % observed_product == 0\n    ), f\"{total_product} is not divisible by {observed_product}\"\n    value = total_product // observed_product\n    x = x.copy()\n    x[question_mark_index] = value\n    return x\ndef _ground(x, known, infer_question_mark_with=None):\n    x, known = _infer(known=known, desc=x, shape=None)\n    if infer_question_mark_with:\n        x = _infer_question_mark(x, infer_question_mark_with)\n    for part in x:\n        assert type(part) is int, f\"cannot infer value of {part}\"\n    return x\ndef _handle_ellipsis(x, before, after):\n    ell = [\"...\"]\n    try:\n        i = before.index(ell)\n        l = len(x.shape) - len(before) + 1\n        ellipsis_value = x.shape[i : i + l]\n        ellipsis_value = list(ellipsis_value)",
+        "type": "code",
+        "location": "/lib/misc.py:158-187"
+    },
+    "257": {
+        "file_id": 14,
+        "content": "- Calculate product of known values in list 'x'\n- Assert that the total product is divisible by observed product and return error message if not\n- Update list 'x' with calculated value for the question mark index and return it",
+        "type": "comment"
+    },
+    "258": {
+        "file_id": 14,
+        "content": "        before = before[:i] + ellipsis_value + before[i + 1 :]\n    except ValueError:\n        pass\n    try:\n        i = after.index(ell)\n        after = after[:i] + ellipsis_value + after[i + 1 :]\n    except ValueError:\n        pass\n    except UnboundLocalError as e:\n        raise ValueError(\"there cannot be an ellipsis in 'after' unless there is an ellipsis in 'before'\") from e\n    return before, after\ndef reshape_undo(inp, before, after, *, undo=None, known=None, **kwargs):\n    \"\"\"\n    Usage:\n    x_Bhwse, undo = reshape_undo(\n        x_bthwe,\n        'b, t, ..., stride*e',\n        'b*t, ..., stride, e',\n        stride=7\n    )\n    x_Bhwse = do_some_stuff(x_Bhwse)\n    x_bthwe = undo(x_Bhwse)\n    It's necessary to pass known values as keywords only\n    when they can't be inferred from the shape.\n    (Eg. in the above example we needed to pass\n    stride but not b, t, or e, since those can be determined from\n    inp.shape once stride is known.)\n    \"\"\"\n    if known:\n        known = {**kwargs, **known}\n    else:\n        known = kwargs",
+        "type": "code",
+        "location": "/lib/misc.py:188-223"
+    },
+    "259": {
+        "file_id": 14,
+        "content": "The code performs shape reshaping operations and handles any exceptions that may occur during the process. It takes input, initial 'before' and 'after' shapes as arguments, and optional 'undo' and 'known' parameters. If 'known' is provided, it becomes a dictionary of known values to help with shape inference. The function returns reshaped input and an 'undo' function for reverting the reshape operation.",
+        "type": "comment"
+    },
+    "260": {
+        "file_id": 14,
+        "content": "    assert type(before) is type(after), f\"{type(before)} != {type(after)}\"\n    assert isinstance(inp, (th.Tensor, np.ndarray)), f\"require tensor or ndarray but got {type(inp)}\"\n    assert isinstance(before, (str, list)), f\"require str or list but got {type(before)}\"\n    if isinstance(before, str):\n        before = _parse_reshape_str(before, \"before\")\n        after = _parse_reshape_str(after, \"after\")\n        before, after = _handle_ellipsis(inp, before, after)\n    before_saved, after_saved = before, after\n    before, known = _infer(known=known, desc=before, shape=inp.shape)\n    before = _ground(before, known, product(inp.shape))\n    after = _ground(after, known, product(inp.shape))\n    known = {k: v for k, v in known.items() if not k.startswith(NO_BIND)}\n    assert tuple(inp.shape) == tuple(before), f\"expected shape {before} but got shape {inp.shape}\"\n    assert product(inp.shape) == product(\n        after\n    ), f\"cannot reshape {inp.shape} to {after} because the number of elements does not match\"\n    return (",
+        "type": "code",
+        "location": "/lib/misc.py:224-240"
+    },
+    "261": {
+        "file_id": 14,
+        "content": "Ensures input types are correct and parses reshape string if input is a string. Infers the shape of the input, grounds it, and removes any bindings marked with NO_BIND. Asserts that the shapes match and returns the result.",
+        "type": "comment"
+    },
+    "262": {
+        "file_id": 14,
+        "content": "        inp.reshape(after),\n        compose_undo(undo, lambda inp: reshape(inp, after_saved, before_saved, known=known)),\n    )\ndef reshape(*args, **kwargs):\n    \"\"\"\n    Please see the documenation for reshape_undo.\n    \"\"\"\n    x, _ = reshape_undo(*args, **kwargs)\n    return x\ndef product(xs, one=1):\n    result = one\n    for x in xs:\n        result = result * x\n    return result\ndef exact_div(a, b):\n    assert a % b == 0, f\"{a} is not divisible by {b}\"\n    return a // b",
+        "type": "code",
+        "location": "/lib/misc.py:241-263"
+    },
+    "263": {
+        "file_id": 14,
+        "content": "The code contains functions for reshaping arrays, calculating products of a list of numbers, and performing an exact division.",
+        "type": "comment"
+    },
+    "264": {
+        "file_id": 15,
+        "content": "/lib/mlp.py",
+        "type": "filepath"
+    },
+    "265": {
+        "file_id": 15,
+        "content": "MLP class defines a neural network with specified input, hidden, and output layers. It uses normed linear layers and applies the specified activation function to hidden layers.",
+        "type": "summary"
+    },
+    "266": {
+        "file_id": 15,
+        "content": "import torch as th\nfrom torch import nn\nfrom lib import misc\nfrom lib import torch_util as tu\nclass MLP(nn.Module):\n    def __init__(self, insize, nhidlayer, outsize, hidsize, hidactiv, dtype=th.float32):\n        super().__init__()\n        self.insize = insize\n        self.nhidlayer = nhidlayer\n        self.outsize = outsize\n        in_sizes = [insize] + [hidsize] * nhidlayer\n        out_sizes = [hidsize] * nhidlayer + [outsize]\n        self.layers = nn.ModuleList(\n            [tu.NormedLinear(insize, outsize, dtype=dtype) for (insize, outsize) in misc.safezip(in_sizes, out_sizes)]\n        )\n        self.hidactiv = hidactiv\n    def forward(self, x):\n        *hidlayers, finallayer = self.layers\n        for layer in hidlayers:\n            x = layer(x)\n            x = self.hidactiv(x)\n        x = finallayer(x)\n        return x\n    @property\n    def output_shape(self):\n        return (self.outsize,)",
+        "type": "code",
+        "location": "/lib/mlp.py:1-31"
+    },
+    "267": {
+        "file_id": 15,
+        "content": "MLP class defines a neural network with specified input, hidden, and output layers. It uses normed linear layers and applies the specified activation function to hidden layers.",
+        "type": "comment"
+    },
+    "268": {
+        "file_id": 16,
+        "content": "/lib/normalize_ewma.py",
+        "type": "filepath"
+    },
+    "269": {
+        "file_id": 16,
+        "content": "The NormalizeEwma module normalizes data across dimensions, calculates debiased mean and variance, and provides methods for normalization and denormalization. It maintains running mean and variance for input vectors during training while avoiding backpropagation issues.",
+        "type": "summary"
+    },
+    "270": {
+        "file_id": 16,
+        "content": "import numpy as np\nimport torch\nimport torch.nn as nn\nclass NormalizeEwma(nn.Module):\n    \"\"\"Normalize a vector of observations - across the first norm_axes dimensions\"\"\"\n    def __init__(self, input_shape, norm_axes=2, beta=0.99999, per_element_update=False, epsilon=1e-5):\n        super().__init__()\n        self.input_shape = input_shape\n        self.norm_axes = norm_axes\n        self.epsilon = epsilon\n        self.beta = beta\n        self.per_element_update = per_element_update\n        self.running_mean = nn.Parameter(torch.zeros(input_shape, dtype=torch.float), requires_grad=False)\n        self.running_mean_sq = nn.Parameter(torch.zeros(input_shape, dtype=torch.float), requires_grad=False)\n        self.debiasing_term = nn.Parameter(torch.tensor(0.0, dtype=torch.float), requires_grad=False)\n    def reset_parameters(self):\n        self.running_mean.zero_()\n        self.running_mean_sq.zero_()\n        self.debiasing_term.zero_()\n    def running_mean_var(self):\n        debiased_mean = self.running_mean / self.debiasing_term.clamp(min=self.epsilon)",
+        "type": "code",
+        "location": "/lib/normalize_ewma.py:1-28"
+    },
+    "271": {
+        "file_id": 16,
+        "content": "NormalizeEwma is an EWMA (Exponential Weighted Moving Average) normalization module for vectors of observations. It normalizes the data across specific dimensions, with optional per-element update and debiasing term.",
+        "type": "comment"
+    },
+    "272": {
+        "file_id": 16,
+        "content": "        debiased_mean_sq = self.running_mean_sq / self.debiasing_term.clamp(min=self.epsilon)\n        debiased_var = (debiased_mean_sq - debiased_mean ** 2).clamp(min=1e-2)\n        return debiased_mean, debiased_var\n    def forward(self, input_vector):\n        # Make sure input is float32\n        input_vector = input_vector.to(torch.float)\n        if self.training:\n            # Detach input before adding it to running means to avoid backpropping through it on\n            # subsequent batches.\n            detached_input = input_vector.detach()\n            batch_mean = detached_input.mean(dim=tuple(range(self.norm_axes)))\n            batch_sq_mean = (detached_input ** 2).mean(dim=tuple(range(self.norm_axes)))\n            if self.per_element_update:\n                batch_size = np.prod(detached_input.size()[: self.norm_axes])\n                weight = self.beta ** batch_size\n            else:\n                weight = self.beta\n            self.running_mean.mul_(weight).add_(batch_mean * (1.0 - weight))\n            self.running_mean_sq.mul_(weight).add_(batch_sq_mean * (1.0 - weight))",
+        "type": "code",
+        "location": "/lib/normalize_ewma.py:29-51"
+    },
+    "273": {
+        "file_id": 16,
+        "content": "This code calculates the debiased mean and variance of input vectors for each batch while training. It normalizes the input to float32, updates running means and squared means with detached inputs, and applies weighted averages to avoid backpropagation through subsequent batches.",
+        "type": "comment"
+    },
+    "274": {
+        "file_id": 16,
+        "content": "            self.debiasing_term.mul_(weight).add_(1.0 * (1.0 - weight))\n        mean, var = self.running_mean_var()\n        return (input_vector - mean[(None,) * self.norm_axes]) / torch.sqrt(var)[(None,) * self.norm_axes]\n    def denormalize(self, input_vector):\n        \"\"\"Transform normalized data back into original distribution\"\"\"\n        mean, var = self.running_mean_var()\n        return input_vector * torch.sqrt(var)[(None,) * self.norm_axes] + mean[(None,) * self.norm_axes]",
+        "type": "code",
+        "location": "/lib/normalize_ewma.py:52-60"
+    },
+    "275": {
+        "file_id": 16,
+        "content": "This class provides methods to normalize and denormalize data. It also maintains running mean and variance.",
+        "type": "comment"
+    },
+    "276": {
+        "file_id": 17,
+        "content": "/lib/policy.py",
+        "type": "filepath"
+    },
+    "277": {
+        "file_id": 17,
+        "content": "The code includes classes for image preprocessing, reinforcement learning with optional parameters, and a MinecraftAgentPolicy network using PyTorch neural networks. It handles policy decisions, actions, and probabilities in the policy network while utilizing 3D convolution layers for reinforcement learning models.",
+        "type": "summary"
+    },
+    "278": {
+        "file_id": 17,
+        "content": "from copy import deepcopy\nfrom email import policy\nfrom typing import Dict, Optional\nimport numpy as np\nimport torch as th\nfrom gym3.types import DictType\nfrom torch import nn\nfrom torch.nn import functional as F\nfrom lib.action_head import make_action_head\nfrom lib.action_mapping import CameraHierarchicalMapping\nfrom lib.impala_cnn import ImpalaCNN\nfrom lib.normalize_ewma import NormalizeEwma\nfrom lib.scaled_mse_head import ScaledMSEHead\nfrom lib.tree_util import tree_map\nfrom lib.util import FanInInitReLULayer, ResidualRecurrentBlocks\nfrom lib.misc import transpose\nclass ImgPreprocessing(nn.Module):\n    \"\"\"Normalize incoming images.\n    :param img_statistics: remote path to npz file with a mean and std image. If specified\n        normalize images using this.\n    :param scale_img: If true and img_statistics not specified, scale incoming images by 1/255.\n    \"\"\"\n    def __init__(self, img_statistics: Optional[str] = None, scale_img: bool = True):\n        super().__init__()\n        self.img_mean = None\n        if img_statistics is not None:",
+        "type": "code",
+        "location": "/lib/policy.py:1-32"
+    },
+    "279": {
+        "file_id": 17,
+        "content": "This code defines a class called \"ImgPreprocessing\" which is used to normalize incoming images. It has an optional parameter for img_statistics, a remote path to a npz file containing mean and std image values. If img_statistics is provided, the images are normalized using those values. Otherwise, if no img_statistics is provided but scale_img is True, the images are scaled by 1/255. The class inherits from nn.Module which allows it to be used as part of a neural network in PyTorch. The code also initializes an instance variable self.img_mean to None.",
+        "type": "comment"
+    },
+    "280": {
+        "file_id": 17,
+        "content": "            img_statistics = dict(**np.load(img_statistics))\n            self.img_mean = nn.Parameter(th.Tensor(img_statistics[\"mean\"]), requires_grad=False)\n            self.img_std = nn.Parameter(th.Tensor(img_statistics[\"std\"]), requires_grad=False)\n        else:\n            self.ob_scale = 255.0 if scale_img else 1.0\n    def forward(self, img):\n        x = img.to(dtype=th.float32)\n        if self.img_mean is not None:\n            x = (x - self.img_mean) / self.img_std\n        else:\n            x = x / self.ob_scale\n        return x\nclass ImgObsProcess(nn.Module):\n    \"\"\"ImpalaCNN followed by a linear layer.\n    :param cnn_outsize: impala output dimension\n    :param output_size: output size of the linear layer.\n    :param dense_init_norm_kwargs: kwargs for linear FanInInitReLULayer\n    :param init_norm_kwargs: kwargs for 2d and 3d conv FanInInitReLULayer\n    \"\"\"\n    def __init__(\n        self,\n        cnn_outsize: int,\n        output_size: int,\n        dense_init_norm_kwargs: Dict = {},\n        init_norm_kwargs: Dict = {},",
+        "type": "code",
+        "location": "/lib/policy.py:33-62"
+    },
+    "281": {
+        "file_id": 17,
+        "content": "This code defines a class named \"ImgObsProcess\" which is a subclass of nn.Module used for preprocessing images and observations. It loads image statistics (mean and std) from a file or uses default scale values based on the provided \"scale_img\". The forward method normalizes the input image by subtracting mean and dividing by std if img_mean and img_std are not None, otherwise it divides by ob_scale. The class also accepts parameters for creating an instance of ImpalaCNN followed by a linear layer.",
+        "type": "comment"
+    },
+    "282": {
+        "file_id": 17,
+        "content": "        **kwargs,\n    ):\n        super().__init__()\n        self.cnn = ImpalaCNN(\n            outsize=cnn_outsize,\n            init_norm_kwargs=init_norm_kwargs,\n            dense_init_norm_kwargs=dense_init_norm_kwargs,\n            **kwargs,\n        )\n        self.linear = FanInInitReLULayer(\n            cnn_outsize,\n            output_size,\n            layer_type=\"linear\",\n            **dense_init_norm_kwargs,\n        )\n    def forward(self, img):\n        return self.linear(self.cnn(img))\nclass MinecraftPolicy(nn.Module):\n    \"\"\"\n    :param recurrence_type:\n        None                - No recurrence, adds no extra layers\n        lstm                - (Depreciated). Singular LSTM\n        multi_layer_lstm    - Multi-layer LSTM. Uses n_recurrence_layers to determine number of consecututive LSTMs\n            Does NOT support ragged batching\n        multi_masked_lstm   - Multi-layer LSTM that supports ragged batching via the first vector. This model is slower\n            Uses n_recurrence_layers to determine number of consecututive LSTMs",
+        "type": "code",
+        "location": "/lib/policy.py:63-91"
+    },
+    "283": {
+        "file_id": 17,
+        "content": "This code defines a class called \"Policy\" with an initializer and a forward method. The initializer takes various parameters, creates an ImpalaCNN and FanInInitReLULayer layers, and initializes the CNN layer with given parameters. The forward method applies these layers to input images and returns the result.\nThe code also defines a class called \"MinecraftPolicy\" that extends nn.Module and takes recurrence_type as parameter. It doesn't have any methods defined.",
+        "type": "comment"
+    },
+    "284": {
+        "file_id": 17,
+        "content": "        transformer         - Dense transformer\n    :param init_norm_kwargs: kwargs for all FanInInitReLULayers.\n    \"\"\"\n    def __init__(\n        self,\n        recurrence_type=\"lstm\",\n        impala_width=1,\n        impala_chans=(16, 32, 32),\n        obs_processing_width=256,\n        hidsize=512,\n        single_output=False,  # True if we don't need separate outputs for action/value outputs\n        img_shape=None,\n        scale_input_img=True,\n        only_img_input=False,\n        init_norm_kwargs={},\n        impala_kwargs={},\n        # Unused argument assumed by forc.\n        input_shape=None,  # pylint: disable=unused-argument\n        active_reward_monitors=None,\n        img_statistics=None,\n        first_conv_norm=False,\n        diff_mlp_embedding=False,\n        attention_mask_style=\"clipped_causal\",\n        attention_heads=8,\n        attention_memory_size=2048,\n        use_pointwise_layer=True,\n        pointwise_ratio=4,\n        pointwise_use_activation=False,\n        n_recurrence_layers=1,\n        recurrence_is_residual=True,",
+        "type": "code",
+        "location": "/lib/policy.py:92-122"
+    },
+    "285": {
+        "file_id": 17,
+        "content": "This function is used to initialize an object of the class \"Policy\" which appears to be a deep learning model for reinforcement learning. The model can take both image and observation inputs, and uses a Dense transformer as part of its architecture. There are many optional parameters such as recurrence_type, impala_width, obs_processing_width, hidsize, single_output, img_shape, scale_input_img, only_img_input, init_norm_kwargs, impala_kwargs and more that can be used to customize the model.",
+        "type": "comment"
+    },
+    "286": {
+        "file_id": 17,
+        "content": "        timesteps=None,\n        use_pre_lstm_ln=True,  # Not needed for transformer\n        **unused_kwargs,\n    ):\n        super().__init__()\n        assert recurrence_type in [\n            \"multi_layer_lstm\",\n            \"multi_layer_bilstm\",\n            \"multi_masked_lstm\",\n            \"transformer\",\n            \"none\",\n        ]\n        active_reward_monitors = active_reward_monitors or {}\n        self.single_output = single_output\n        chans = tuple(int(impala_width * c) for c in impala_chans)\n        self.hidsize = hidsize\n        # Dense init kwargs replaces batchnorm/groupnorm with layernorm\n        self.init_norm_kwargs = init_norm_kwargs\n        self.dense_init_norm_kwargs = deepcopy(init_norm_kwargs)\n        if self.dense_init_norm_kwargs.get(\"group_norm_groups\", None) is not None:\n            self.dense_init_norm_kwargs.pop(\"group_norm_groups\", None)\n            self.dense_init_norm_kwargs[\"layer_norm\"] = True\n        if self.dense_init_norm_kwargs.get(\"batch_norm\", False):\n            self.dense_init_norm_kwargs.pop(\"batch_norm\", False)",
+        "type": "code",
+        "location": "/lib/policy.py:123-150"
+    },
+    "287": {
+        "file_id": 17,
+        "content": "The code defines a class with an __init__ method that takes various arguments, including the recurrence_type, active_reward_monitors, single_output, impala_width, impala_chans, hidsize, init_norm_kwargs and timesteps. It performs an assertion on the recurrence_type, initializes some variables and dictionaries, and defines a few more attributes based on these arguments.",
+        "type": "comment"
+    },
+    "288": {
+        "file_id": 17,
+        "content": "            self.dense_init_norm_kwargs[\"layer_norm\"] = True\n        # Setup inputs\n        self.img_preprocess = ImgPreprocessing(img_statistics=img_statistics, scale_img=scale_input_img)\n        self.img_process = ImgObsProcess(\n            cnn_outsize=256,\n            output_size=hidsize,\n            inshape=img_shape,\n            chans=chans,\n            nblock=2,\n            dense_init_norm_kwargs=self.dense_init_norm_kwargs,\n            init_norm_kwargs=init_norm_kwargs,\n            first_conv_norm=first_conv_norm,\n            **impala_kwargs,\n        )\n        self.pre_lstm_ln = nn.LayerNorm(hidsize) if use_pre_lstm_ln else None\n        self.diff_obs_process = None\n        self.recurrence_type = recurrence_type\n        self.recurrent_layer = None\n        self.recurrent_layer = ResidualRecurrentBlocks(\n            hidsize=hidsize,\n            timesteps=timesteps,\n            recurrence_type=recurrence_type,\n            is_residual=recurrence_is_residual,\n            use_pointwise_layer=use_pointwise_layer,",
+        "type": "code",
+        "location": "/lib/policy.py:151-178"
+    },
+    "289": {
+        "file_id": 17,
+        "content": "Initializing layer norm for dense layers and setting up input processing components.",
+        "type": "comment"
+    },
+    "290": {
+        "file_id": 17,
+        "content": "            pointwise_ratio=pointwise_ratio,\n            pointwise_use_activation=pointwise_use_activation,\n            attention_mask_style=attention_mask_style,\n            attention_heads=attention_heads,\n            attention_memory_size=attention_memory_size,\n            n_block=n_recurrence_layers,\n        )\n        self.lastlayer = FanInInitReLULayer(hidsize, hidsize, layer_type=\"linear\", **self.dense_init_norm_kwargs)\n        self.final_ln = th.nn.LayerNorm(hidsize)\n    def output_latent_size(self):\n        return self.hidsize\n    def forward(self, ob, state_in, context):\n        first = context[\"first\"]\n        x = self.img_preprocess(ob[\"img\"])\n        x = self.img_process(x)\n        if self.diff_obs_process:\n            processed_obs = self.diff_obs_process(ob[\"diff_goal\"])\n            x = processed_obs + x\n        if self.pre_lstm_ln is not None:\n            x = self.pre_lstm_ln(x)\n        if self.recurrent_layer is not None:\n            x, state_out = self.recurrent_layer(x, first, state_in)\n        else:",
+        "type": "code",
+        "location": "/lib/policy.py:179-208"
+    },
+    "291": {
+        "file_id": 17,
+        "content": "The code initializes a module with specified parameters including pointwise_ratio, pointwise_use_activation, attention_mask_style, attention_heads, attention_memory_size and n_block. Then it creates an instance of FanInInitReLULayer and LayerNorm for the last layer and final layer normalization respectively. It also defines a function output_latent_size to return the latent size, and another function forward which takes in observations, initial state, and context as input, performs image preprocessing and optional differential observation processing if specified, applies pre-LSTM normalization if present, then passes the processed data through the recurrent layer to obtain output x and updated state.",
+        "type": "comment"
+    },
+    "292": {
+        "file_id": 17,
+        "content": "            state_out = state_in\n        x = F.relu(x, inplace=False)\n        x = self.lastlayer(x)\n        x = self.final_ln(x)\n        pi_latent = vf_latent = x\n        if self.single_output:\n            return pi_latent, state_out\n        return (pi_latent, vf_latent), state_out\n    def initial_state(self, batchsize):\n        if self.recurrent_layer:\n            return self.recurrent_layer.initial_state(batchsize)\n        else:\n            return None\nclass MinecraftAgentPolicy(nn.Module):\n    def __init__(self, action_space, policy_kwargs, pi_head_kwargs):\n        super().__init__()\n        self.net = MinecraftPolicy(**policy_kwargs)\n        self.action_space = action_space\n        self.value_head = self.make_value_head(self.net.output_latent_size())\n        self.pi_head = self.make_action_head(self.net.output_latent_size(), **pi_head_kwargs)\n    def make_value_head(self, v_out_size: int, norm_type: str = \"ewma\", norm_kwargs: Optional[Dict] = None):\n        return ScaledMSEHead(v_out_size, 1, norm_type=norm_type, norm_kwargs=norm_kwargs)",
+        "type": "code",
+        "location": "/lib/policy.py:209-238"
+    },
+    "293": {
+        "file_id": 17,
+        "content": "The code defines a class `MinecraftAgentPolicy` that inherits from `nn.Module`. It takes in an action space, policy kwargs, and pi_head kwargs as parameters during initialization. Inside the initialization, it creates a network `self.net` using `MinecraftPolicy`, a value head `self.value_head` using `make_value_head`, and a policy head `self.pi_head` using `make_action_head`. The code also defines a method `initial_state(batchsize)` that returns the initial state of the recurrent layer if it exists, otherwise it returns None.",
+        "type": "comment"
+    },
+    "294": {
+        "file_id": 17,
+        "content": "    def make_action_head(self, pi_out_size: int, **pi_head_opts):\n        return make_action_head(self.action_space, pi_out_size, **pi_head_opts)\n    def initial_state(self, batch_size: int):\n        return self.net.initial_state(batch_size)\n    def reset_parameters(self):\n        super().reset_parameters()\n        self.net.reset_parameters()\n        self.pi_head.reset_parameters()\n        self.value_head.reset_parameters()\n    def forward(self, obs, first: th.Tensor, state_in):\n        if isinstance(obs, dict):\n            # We don't want to mutate the obs input.\n            obs = obs.copy()\n            # If special \"mask\" key is in obs,\n            # It's for masking the logits.\n            # We take it out (the network doesn't need it)\n            mask = obs.pop(\"mask\", None)\n        else:\n            mask = None\n        (pi_h, v_h), state_out = self.net(obs, state_in, context={\"first\": first})\n        pi_logits = self.pi_head(pi_h, mask=mask)\n        vpred = self.value_head(v_h)\n        return (pi_logits, vpred, None), state_out",
+        "type": "code",
+        "location": "/lib/policy.py:240-269"
+    },
+    "295": {
+        "file_id": 17,
+        "content": "This code defines a class that uses a neural network to make policy decisions. It includes methods for creating an action head, initializing the state, resetting parameters, and performing forward passes on input observations. The forward pass involves passing the observation through the network, extracting policy logits and value predictions using separate heads, and returning these outputs along with any updated state.",
+        "type": "comment"
+    },
+    "296": {
+        "file_id": 17,
+        "content": "    def get_logprob_of_action(self, pd, action):\n        \"\"\"\n        Get logprob of taking action `action` given probability distribution\n        (see `get_gradient_for_action` to get this distribution)\n        \"\"\"\n        ac = tree_map(lambda x: x.unsqueeze(1), action)\n        log_prob = self.pi_head.logprob(ac, pd)\n        assert not th.isnan(log_prob).any()\n        return log_prob[:, 0]\n    def get_kl_of_action_dists(self, pd1, pd2):\n        \"\"\"\n        Get the KL divergence between two action probability distributions\n        \"\"\"\n        return self.pi_head.kl_divergence(pd1, pd2)\n    def get_output_for_observation(self, obs, state_in, first):\n        \"\"\"\n        Return gradient-enabled outputs for given observation.\n        Use `get_logprob_of_action` to get log probability of action\n        with the given probability distribution.\n        Returns:\n          - probability distribution given observation\n          - value prediction for given observation\n          - new state\n        \"\"\"\n        # We need to add a fictitious time dimension everywhere",
+        "type": "code",
+        "location": "/lib/policy.py:271-299"
+    },
+    "297": {
+        "file_id": 17,
+        "content": "This code defines three functions for handling actions and probabilities in a policy network. The first function `get_logprob_of_action` calculates the log probability of taking a given action based on the provided probability distribution. The second function `get_kl_of_action_dists` computes the KL divergence between two action probability distributions. Lastly, the `get_output_for_observation` function returns the probability distribution, value prediction, and new state for a given observation using the previous two functions.",
+        "type": "comment"
+    },
+    "298": {
+        "file_id": 17,
+        "content": "        obs = tree_map(lambda x: x.unsqueeze(1), obs)\n        first = first.unsqueeze(1)\n        (pd, vpred, _), state_out = self(obs=obs, first=first, state_in=state_in)\n        return pd, self.value_head.denormalize(vpred)[:, 0], state_out\n    @th.no_grad()\n    def act(self, obs, first, state_in, stochastic: bool = True, taken_action=None, return_pd=False):\n        # We need to add a fictitious time dimension everywhere\n        obs = tree_map(lambda x: x.unsqueeze(1), obs)\n        first = first.unsqueeze(1)\n        (pd, vpred, _), state_out = self(obs=obs, first=first, state_in=state_in)\n        if taken_action is None:\n            ac = self.pi_head.sample(pd, deterministic=not stochastic)\n        else:\n            ac = tree_map(lambda x: x.unsqueeze(1), taken_action)\n        log_prob = self.pi_head.logprob(ac, pd)\n        assert not th.isnan(log_prob).any()\n        # After unsqueezing, squeeze back to remove fictitious time dimension\n        result = {\"log_prob\": log_prob[:, 0], \"vpred\": self.value_head.denormalize(vpred)[:, 0]}",
+        "type": "code",
+        "location": "/lib/policy.py:300-323"
+    },
+    "299": {
+        "file_id": 17,
+        "content": "Code is adding a time dimension to the observations and first state, then passing them through the model to get policies (pd), value predictions (vpred), and update the state. If a taken action is provided, it uses that for the current step instead of sampling from the policy. It calculates the log probability of the taken action and stores the results in a dictionary with keys \"log_prob\" and \"vpred\". The time dimension is removed after calculations are done.",
+        "type": "comment"
+    }
+}

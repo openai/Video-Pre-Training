@@ -1,0 +1,13 @@
+{
+    "400": {
+        "file_id": 22,
+        "content": "        modules = [make_fn(*args, **kwargs) for _ in seqlens]\n        return SplitCallJoin(modules, seqlens)\n    else:\n        return make_fn(*args, **kwargs)\nclass SplitCallJoin(nn.Module):\n    def __init__(self, mods, seqlens):\n        super().__init__()\n        self.mods = nn.ModuleList(mods)\n        self.seqlens = seqlens\n    def forward(self, x):\n        tl = sum(self.seqlens)\n        x, undo = misc.reshape_undo(x, \"..., z*tl, e\", \"..., z, tl, e\", tl=tl)\n        x = list(th.split(x, self.seqlens, dim=-2))\n        new_x = []\n        for x, mod in misc.safezip(x, self.mods):\n            x, this_undo = misc.reshape_undo(x, \"..., z, l, e\", \"..., z*l, e\")\n            x = mod(x)\n            x = this_undo(x)\n            new_x.append(x)\n        x = th.cat(new_x, dim=-2)\n        x = undo(x)\n        return x\nMultiscaleLinear = functools.partial(make_maybe_multiscale, tu.NormedLinear)\nMultiscalePointwise = functools.partial(make_maybe_multiscale, PointwiseLayer)",
+        "type": "code",
+        "location": "/lib/xf.py:451-479"
+    },
+    "401": {
+        "file_id": 22,
+        "content": "This code defines a function `SplitCallJoin` that takes a list of modules and sequence lengths as inputs. It initializes the `SplitCallJoin` class, which splits the input tensor into multiple smaller tensors based on the sequence lengths, applies each module in parallel, and then concatenates the results back together. The function also defines two partial functions `MultiscaleLinear` and `MultiscalePointwise` using `functools.partial` to create variants of `make_maybe_multiscale` for `tu.NormedLinear` and `PointwiseLayer`, respectively.",
+        "type": "comment"
+    }
+}

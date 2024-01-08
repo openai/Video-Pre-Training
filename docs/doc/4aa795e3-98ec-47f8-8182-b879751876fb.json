@@ -1,0 +1,15 @@
+{
+    "summary": "The code defines a ScaledMSEHead class for a linear output layer, scales targets to N(0, 1), and calculates MSE loss between normalized predictions and denormalized target values in a normalized space.",
+    "details": [
+        {
+            "comment": "This code defines a ScaledMSEHead class which is a linear output layer. It scales itself so that targets are always normalized to N(0, 1). The input size, output size, normalization type (ewma), and normalization kwargs can be set upon instantiation. The reset_parameters function initializes the weights with orthogonal initialization and resets the normalizer's parameters. Forward function passes input data through a linear layer.",
+            "location": "\"/media/root/Toshiba XG3/works/Video-Pre-Training/docs/src/lib/scaled_mse_head.py\":0-34",
+            "content": "from typing import Dict, Optional\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport torch.nn.init as init\nfrom lib.action_head import fan_in_linear\nfrom lib.normalize_ewma import NormalizeEwma\nclass ScaledMSEHead(nn.Module):\n    \"\"\"\n    Linear output layer that scales itself so that targets are always normalized to N(0, 1)\n    \"\"\"\n    def __init__(\n        self, input_size: int, output_size: int, norm_type: Optional[str] = \"ewma\", norm_kwargs: Optional[Dict] = None\n    ):\n        super().__init__()\n        self.input_size = input_size\n        self.output_size = output_size\n        self.norm_type = norm_type\n        self.linear = nn.Linear(self.input_size, self.output_size)\n        norm_kwargs = {} if norm_kwargs is None else norm_kwargs\n        self.normalizer = NormalizeEwma(output_size, **norm_kwargs)\n    def reset_parameters(self):\n        init.orthogonal_(self.linear.weight)\n        fan_in_linear(self.linear)\n        self.normalizer.reset_parameters()\n    def forward(self, input_data):\n        return self.linear(input_data)"
+        },
+        {
+            "comment": "This code defines a loss function for MSE (Mean Squared Error) and normalization/denormalization functions. It calculates the MSE loss between normalized prediction and denormalized target values in a normalized space, and converts input values from normalized to original space.",
+            "location": "\"/media/root/Toshiba XG3/works/Video-Pre-Training/docs/src/lib/scaled_mse_head.py\":36-49",
+            "content": "    def loss(self, prediction, target):\n        \"\"\"\n        Calculate the MSE loss between output and a target.\n        'Prediction' has to be normalized while target is denormalized.\n        Loss is calculated in a 'normalized' space.\n        \"\"\"\n        return F.mse_loss(prediction, self.normalizer(target), reduction=\"mean\")\n    def denormalize(self, input_data):\n        \"\"\"Convert input value from a normalized space into the original one\"\"\"\n        return self.normalizer.denormalize(input_data)\n    def normalize(self, input_data):\n        return self.normalizer(input_data)"
+        }
+    ]
+}
