@@ -321,7 +321,7 @@
     },
     "159": {
         "file_id": 8,
-        "content": "\"Returns the index with maximum value in logits\"\n\"Applies Gumbel-Softmax trick for training with float16 precision\"\n\"Calculates KL divergence between two categorical distributions using logits\"",
+        "content": "Returns the index with maximum value in logits\"\n\"Applies Gumbel-Softmax trick for training with float16 precision\"\n\"Calculates KL divergence between two categorical distributions using logits",
         "type": "comment"
     },
     "160": {

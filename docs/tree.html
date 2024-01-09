@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="github-markdown.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .directory:hover {
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        :target {
+            background-color: yellow;
+        }
+
+        .folded::before {
+            content: '\25B6';
+            margin-right: 8px;
+            /* Add space between marker and text */
+        }
+
+        .expanded::before {
+            content: '\25BC';
+            margin-right: 8px;
+            /* Add space between marker and text */
+        }
+    </style>
+    <script>
+        function toggleVisibility(element) {
+            let mclass = element.getAttribute("class");
+            if (mclass == "expanded") {
+                element.setAttribute('class', 'folded');
+            } else {
+                element.setAttribute('class', 'expanded');
+            }
+            const siblings = element.parentNode.children;
+            for (const sibling of siblings) {
+                if (sibling !== element) {
+                    sibling.style.display = (sibling.style.display === 'none') ? 'block' : 'none';
+                }
+            }
+        }
+    </script>
+    <style>
+        .markdown-body {
+            box-sizing: border-box;
+            min-width: 200px;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 45px;
+        }
+
+        @media (max-width: 767px) {
+            .markdown-body {
+                padding: 15px;
+            }
+
+            .partial-repository-url {
+                display: none;
+            }
+        }
+
+        ul {
+            list-style: none;
+        }
+    </style>
+</head>
+
+<body>
+    <article class="markdown-body">
+        <h2>Project Structure<span hierarchy="0" class="partial-repository-url"> of: openai/Video-Pre-Training</span><div style="float: right;"><a href="index.html"><i class="bi bi-search"></i></a></div></h2>
+<ul>
+<li><span hierarchy="0" class="expanded" onclick="toggleVisibility(this)" ><strong class="directory" id="/"><code>Video-Pre-Training</code></strong> <em>Minecraft AI training, competition, resources, and models.</em></span><ul>
+<li><a href="index.html?q=/README.md" id="/README.md"><code>README.md</code></a> <em>Minecraft AI training, competition, resource data, 10-min house building.</em></li>
+<li><a href="index.html?q=/agent.py" id="/agent.py"><code>agent.py</code></a> <em>Configure Minecraft agent for reinforcement learning</em></li>
+<li><a href="index.html?q=/behavioural_cloning.py" id="/behavioural_cloning.py"><code>behavioural_cloning.py</code></a> <em>Trains actor-critic model for behavioral cloning.</em></li>
+<li><a href="index.html?q=/data_loader.py" id="/data_loader.py"><code>data_loader.py</code></a> <em>Data loader for batch processing with worker threads</em></li>
+<li><a href="index.html?q=/inverse_dynamics_model.py" id="/inverse_dynamics_model.py"><code>inverse_dynamics_model.py</code></a> <em>Minecraft action predictor with IDM model.</em></li>
+<li><span hierarchy="1" class="expanded" onclick="toggleVisibility(this)" ><strong class="directory" id="/lib/"><code>lib</code></strong> <em>Transformer models, RL agents, and utility functions.</em></span><ul>
+<li><a href="index.html?q=/lib/action_head.py" id="/lib/action_head.py"><code>action_head.py</code></a> <em>ActionHead: Reinforcement learning action heads abstract base class</em></li>
+<li><a href="index.html?q=/lib/action_mapping.py" id="/lib/action_mapping.py"><code>action_mapping.py</code></a> <em>Action mapping for video game inputs and management.</em></li>
+<li><a href="index.html?q=/lib/actions.py" id="/lib/actions.py"><code>actions.py</code></a> <em>Minecraft actions, quantization, and transformer.</em></li>
+<li><a href="index.html?q=/lib/impala_cnn.py" id="/lib/impala_cnn.py"><code>impala_cnn.py</code></a> <em>ImpalaCNN: Customizable, Multi-Stack Classification Model</em></li>
+<li><a href="index.html?q=/lib/masked_attention.py" id="/lib/masked_attention.py"><code>masked_attention.py</code></a> <em>Masked Attention for time series data.</em></li>
+<li><a href="index.html?q=/lib/minecraft_util.py" id="/lib/minecraft_util.py"><code>minecraft_util.py</code></a> <em>Compute entropy from categorical head outputs.</em></li>
+<li><a href="index.html?q=/lib/misc.py" id="/lib/misc.py"><code>misc.py</code></a> <em>Data processing tasks and function design discussed.</em></li>
+<li><a href="index.html?q=/lib/mlp.py" id="/lib/mlp.py"><code>mlp.py</code></a> <em>MLP class: Neural network with specified layers, normed linear.</em></li>
+<li><a href="index.html?q=/lib/normalize_ewma.py" id="/lib/normalize_ewma.py"><code>normalize_ewma.py</code></a> <em>Normalizes data, maintains running mean &amp; variance.</em></li>
+<li><a href="index.html?q=/lib/policy.py" id="/lib/policy.py"><code>policy.py</code></a> <em>MinecraftAgentPolicy with reinforcement learning, image preprocessing</em></li>
+<li><a href="index.html?q=/lib/scaled_mse_head.py" id="/lib/scaled_mse_head.py"><code>scaled_mse_head.py</code></a> <em>Scaled MSE head for linear output layer and MSE loss.</em></li>
+<li><a href="index.html?q=/lib/torch_util.py" id="/lib/torch_util.py"><code>torch_util.py</code></a> <em>Torch utilities: libraries, device defaults, tensor functions.</em></li>
+<li><a href="index.html?q=/lib/tree_util.py" id="/lib/tree_util.py"><code>tree_util.py</code></a> <em>PyTree API utility functions and data type registration.</em></li>
+<li><a href="index.html?q=/lib/util.py" id="/lib/util.py"><code>util.py</code></a> <em>Neural network utilities for data processing</em></li>
+<li><a href="index.html?q=/lib/xf.py" id="/lib/xf.py"><code>xf.py</code></a> <em>Attention mechanism, layers for transformer models.</em></li>
+</ul>
+</li>
+<li><a href="index.html?q=/requirements.txt" id="/requirements.txt"><code>requirements.txt</code></a> <em>Installs essential libraries for Python.</em></li>
+<li><a href="index.html?q=/run_agent.py" id="/run_agent.py"><code>run_agent.py</code></a> <em>Run MineRL model with pre-trained weights.</em></li>
+<li><a href="index.html?q=/run_inverse_dynamics_model.py" id="/run_inverse_dynamics_model.py"><code>run_inverse_dynamics_model.py</code></a> <em>Inverse dynamics model with game inputs and video streaming.</em></li>
+</ul>
+</li>
+</ul>
+    </article>
+    <script type="text/javascript">
+        function getQueryParams() {
+            var search = window.location.search.substring(1); // Remove leading '?'
+            var queryParams = {};
+            search.split('&').forEach(function (pair) {
+                var parts = pair.split('=');
+                var key = decodeURIComponent(parts[0]);
+                var value = decodeURIComponent(parts[1]);
+                queryParams[key] = value;
+            });
+            return queryParams;
+        }
+
+        const queryParams = getQueryParams(window.location.search);
+        const show_full = queryParams.full == "true";
+        if (!show_full) {
+            const spans = document.querySelectorAll('span');
+            for (let span of spans) {
+                if (span.getAttribute("hierarchy") == '0') { continue }
+
+                toggleVisibility(span);
+            }
+        }
+    </script>
+</body>
+
+</html>
