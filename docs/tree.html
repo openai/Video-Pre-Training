@@ -66,40 +66,43 @@
         ul {
             list-style: none;
         }
+        #feeling-lucky:hover{
+            cursor: pointer;
+        }
     </style>
 </head>
 
 <body>
     <article class="markdown-body">
-        <h2>Project Structure<span hierarchy="0" class="partial-repository-url"> of: openai/Video-Pre-Training</span><div style="float: right;"><a href="index.html"><i class="bi bi-search"></i></a></div></h2>
+        <h2>Project structure<span hierarchy="0" class="partial-repository-url"> of: openai/Video-Pre-Training</span><div style="float: right;"><a title="Document index" style="margin:3.5px;" href="index.html"><i class="bi bi-search"></i></a><a title="Feeling lucky" style="margin:3.5px;" id="feeling-lucky" href="#"><i class="bi bi-dice-3"></i></a><a title="Expand tree" style="margin:3.5px;" href="tree.html?full=true" id="expand-tree"><i class="bi bi-caret-down-square"></i></a></div></h2>
 <ul>
 <li><span hierarchy="0" class="expanded" onclick="toggleVisibility(this)" ><strong class="directory" id="/"><code>Video-Pre-Training</code></strong> <em>Minecraft AI training, competition, resources, and models.</em></span><ul>
-<li><a href="index.html?q=/README.md" id="/README.md"><code>README&period;md</code></a> <em>Minecraft AI training, competition, resource data, 10-min house building.</em></li>
-<li><a href="index.html?q=/agent.py" id="/agent.py"><code>agent&period;py</code></a> <em>Configure Minecraft agent for reinforcement learning</em></li>
-<li><a href="index.html?q=/behavioural_cloning.py" id="/behavioural_cloning.py"><code>behavioural&UnderBar;cloning&period;py</code></a> <em>Trains actor-critic model for behavioral cloning.</em></li>
-<li><a href="index.html?q=/data_loader.py" id="/data_loader.py"><code>data&UnderBar;loader&period;py</code></a> <em>Data loader for batch processing with worker threads</em></li>
-<li><a href="index.html?q=/inverse_dynamics_model.py" id="/inverse_dynamics_model.py"><code>inverse&UnderBar;dynamics&UnderBar;model&period;py</code></a> <em>Minecraft action predictor with IDM model.</em></li>
+<li><a class="file_link" href="index.html?q=/agent.py" id="/agent.py"><code>agent&period;py</code></a> <em>Configure Minecraft agent for reinforcement learning</em></li>
+<li><a class="file_link" href="index.html?q=/behavioural_cloning.py" id="/behavioural_cloning.py"><code>behavioural&UnderBar;cloning&period;py</code></a> <em>Trains actor-critic model for behavioral cloning.</em></li>
+<li><a class="file_link" href="index.html?q=/data_loader.py" id="/data_loader.py"><code>data&UnderBar;loader&period;py</code></a> <em>Data loader for batch processing with worker threads</em></li>
+<li><a class="file_link" href="index.html?q=/inverse_dynamics_model.py" id="/inverse_dynamics_model.py"><code>inverse&UnderBar;dynamics&UnderBar;model&period;py</code></a> <em>Minecraft action predictor with IDM model.</em></li>
 <li><span hierarchy="1" class="expanded" onclick="toggleVisibility(this)" ><strong class="directory" id="/lib/"><code>lib</code></strong> <em>Transformer models, RL agents, and utility functions.</em></span><ul>
-<li><a href="index.html?q=/lib/action_head.py" id="/lib/action_head.py"><code>action&UnderBar;head&period;py</code></a> <em>ActionHead: Reinforcement learning action heads abstract base class</em></li>
-<li><a href="index.html?q=/lib/action_mapping.py" id="/lib/action_mapping.py"><code>action&UnderBar;mapping&period;py</code></a> <em>Action mapping for video game inputs and management.</em></li>
-<li><a href="index.html?q=/lib/actions.py" id="/lib/actions.py"><code>actions&period;py</code></a> <em>Minecraft actions, quantization, and transformer.</em></li>
-<li><a href="index.html?q=/lib/impala_cnn.py" id="/lib/impala_cnn.py"><code>impala&UnderBar;cnn&period;py</code></a> <em>ImpalaCNN: Customizable, Multi-Stack Classification Model</em></li>
-<li><a href="index.html?q=/lib/masked_attention.py" id="/lib/masked_attention.py"><code>masked&UnderBar;attention&period;py</code></a> <em>Masked Attention for time series data.</em></li>
-<li><a href="index.html?q=/lib/minecraft_util.py" id="/lib/minecraft_util.py"><code>minecraft&UnderBar;util&period;py</code></a> <em>Compute entropy from categorical head outputs.</em></li>
-<li><a href="index.html?q=/lib/misc.py" id="/lib/misc.py"><code>misc&period;py</code></a> <em>Data processing tasks and function design discussed.</em></li>
-<li><a href="index.html?q=/lib/mlp.py" id="/lib/mlp.py"><code>mlp&period;py</code></a> <em>MLP class: Neural network with specified layers, normed linear.</em></li>
-<li><a href="index.html?q=/lib/normalize_ewma.py" id="/lib/normalize_ewma.py"><code>normalize&UnderBar;ewma&period;py</code></a> <em>Normalizes data, maintains running mean &amp; variance.</em></li>
-<li><a href="index.html?q=/lib/policy.py" id="/lib/policy.py"><code>policy&period;py</code></a> <em>MinecraftAgentPolicy with reinforcement learning, image preprocessing</em></li>
-<li><a href="index.html?q=/lib/scaled_mse_head.py" id="/lib/scaled_mse_head.py"><code>scaled&UnderBar;mse&UnderBar;head&period;py</code></a> <em>Scaled MSE head for linear output layer and MSE loss.</em></li>
-<li><a href="index.html?q=/lib/torch_util.py" id="/lib/torch_util.py"><code>torch&UnderBar;util&period;py</code></a> <em>Torch utilities: libraries, device defaults, tensor functions.</em></li>
-<li><a href="index.html?q=/lib/tree_util.py" id="/lib/tree_util.py"><code>tree&UnderBar;util&period;py</code></a> <em>PyTree API utility functions and data type registration.</em></li>
-<li><a href="index.html?q=/lib/util.py" id="/lib/util.py"><code>util&period;py</code></a> <em>Neural network utilities for data processing</em></li>
-<li><a href="index.html?q=/lib/xf.py" id="/lib/xf.py"><code>xf&period;py</code></a> <em>Attention mechanism, layers for transformer models.</em></li>
+<li><a class="file_link" href="index.html?q=/lib/action_head.py" id="/lib/action_head.py"><code>action&UnderBar;head&period;py</code></a> <em>ActionHead: Reinforcement learning action heads abstract base class</em></li>
+<li><a class="file_link" href="index.html?q=/lib/action_mapping.py" id="/lib/action_mapping.py"><code>action&UnderBar;mapping&period;py</code></a> <em>Action mapping for video game inputs and management.</em></li>
+<li><a class="file_link" href="index.html?q=/lib/actions.py" id="/lib/actions.py"><code>actions&period;py</code></a> <em>Minecraft actions, quantization, and transformer.</em></li>
+<li><a class="file_link" href="index.html?q=/lib/impala_cnn.py" id="/lib/impala_cnn.py"><code>impala&UnderBar;cnn&period;py</code></a> <em>ImpalaCNN: Customizable, Multi-Stack Classification Model</em></li>
+<li><a class="file_link" href="index.html?q=/lib/masked_attention.py" id="/lib/masked_attention.py"><code>masked&UnderBar;attention&period;py</code></a> <em>Masked Attention for time series data.</em></li>
+<li><a class="file_link" href="index.html?q=/lib/minecraft_util.py" id="/lib/minecraft_util.py"><code>minecraft&UnderBar;util&period;py</code></a> <em>Compute entropy from categorical head outputs.</em></li>
+<li><a class="file_link" href="index.html?q=/lib/misc.py" id="/lib/misc.py"><code>misc&period;py</code></a> <em>Data processing tasks and function design discussed.</em></li>
+<li><a class="file_link" href="index.html?q=/lib/mlp.py" id="/lib/mlp.py"><code>mlp&period;py</code></a> <em>MLP class: Neural network with specified layers, normed linear.</em></li>
+<li><a class="file_link" href="index.html?q=/lib/normalize_ewma.py" id="/lib/normalize_ewma.py"><code>normalize&UnderBar;ewma&period;py</code></a> <em>Normalizes data, maintains running mean &amp; variance.</em></li>
+<li><a class="file_link" href="index.html?q=/lib/policy.py" id="/lib/policy.py"><code>policy&period;py</code></a> <em>MinecraftAgentPolicy with reinforcement learning, image preprocessing</em></li>
+<li><a class="file_link" href="index.html?q=/lib/scaled_mse_head.py" id="/lib/scaled_mse_head.py"><code>scaled&UnderBar;mse&UnderBar;head&period;py</code></a> <em>Scaled MSE head for linear output layer and MSE loss.</em></li>
+<li><a class="file_link" href="index.html?q=/lib/torch_util.py" id="/lib/torch_util.py"><code>torch&UnderBar;util&period;py</code></a> <em>Torch utilities: libraries, device defaults, tensor functions.</em></li>
+<li><a class="file_link" href="index.html?q=/lib/tree_util.py" id="/lib/tree_util.py"><code>tree&UnderBar;util&period;py</code></a> <em>PyTree API utility functions and data type registration.</em></li>
+<li><a class="file_link" href="index.html?q=/lib/util.py" id="/lib/util.py"><code>util&period;py</code></a> <em>Neural network utilities for data processing</em></li>
+<li><a class="file_link" href="index.html?q=/lib/xf.py" id="/lib/xf.py"><code>xf&period;py</code></a> <em>Attention mechanism, layers for transformer models.</em></li>
 </ul>
 </li>
-<li><a href="index.html?q=/requirements.txt" id="/requirements.txt"><code>requirements&period;txt</code></a> <em>Installs essential libraries for Python.</em></li>
-<li><a href="index.html?q=/run_agent.py" id="/run_agent.py"><code>run&UnderBar;agent&period;py</code></a> <em>Run MineRL model with pre-trained weights.</em></li>
-<li><a href="index.html?q=/run_inverse_dynamics_model.py" id="/run_inverse_dynamics_model.py"><code>run&UnderBar;inverse&UnderBar;dynamics&UnderBar;model&period;py</code></a> <em>Inverse dynamics model with game inputs and video streaming.</em></li>
+<li><a class="file_link" href="index.html?q=/README.md" id="/README.md"><code>README&period;md</code></a> <em>Minecraft AI training, competition, resource data, 10-min house building.</em></li>
+<li><a class="file_link" href="index.html?q=/requirements.txt" id="/requirements.txt"><code>requirements&period;txt</code></a> <em>Installs essential libraries for Python.</em></li>
+<li><a class="file_link" href="index.html?q=/run_agent.py" id="/run_agent.py"><code>run&UnderBar;agent&period;py</code></a> <em>Run MineRL model with pre-trained weights.</em></li>
+<li><a class="file_link" href="index.html?q=/run_inverse_dynamics_model.py" id="/run_inverse_dynamics_model.py"><code>run&UnderBar;inverse&UnderBar;dynamics&UnderBar;model&period;py</code></a> <em>Inverse dynamics model with game inputs and video streaming.</em></li>
 </ul>
 </li>
 </ul>
@@ -119,14 +122,27 @@
 
         const queryParams = getQueryParams(window.location.search);
         const show_full = queryParams.full == "true";
+        //const is_random = queryParams.random == 'true';
+        function feelingLucky() {
+            var elements = document.getElementsByClassName("file_link");
+            var randomIndex = Math.floor(Math.random() * elements.length);
+            window.location = elements[randomIndex].href;
+        }
+        //if (is_random) {feelingLucky();}
+        document.getElementById("feeling-lucky").onclick = feelingLucky;
         if (!show_full) {
             const spans = document.querySelectorAll('span');
             for (let span of spans) {
                 if (span.getAttribute("hierarchy") == '0') { continue }
-
                 toggleVisibility(span);
             }
+        } else {
+            const expand_elem = document.getElementById('expand-tree');
+            expand_elem.setAttribute("href", "tree.html");
+            expand_elem.setAttribute("title", "Undo expand");
+            expand_elem.innerHTML = '<i class="bi bi-caret-up-square"></i>'
         }
+
     </script>
 </body>
 
