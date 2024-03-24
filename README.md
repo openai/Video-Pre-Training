@@ -20,8 +20,7 @@ pip install git+https://github.com/minerllabs/minerl
 pip install -r requirements.txt
 ```
 
-> Note: For safety reasons, the PyTorch version is pinned as `torch==1.9.0`, which is incompatible with Python 3.10 or higher versions.
-> If you are using Python 3.10 or higher, you should run `pip install torch` to install a newer version of PyTorch. Also, please note that this *might* change the model's behavior.
+> ⚠️ Note: For reproducibility reasons, the PyTorch version is pinned as `torch==1.9.0`, which is incompatible with Python 3.10 or higher versions. If you are using Python 3.10 or higher, install a [newer version of PyTorch](https://>pytorch.org/get-started/locally/) (usually, `pip install torch`). However, note that this *might* subtly change model behaviour (e.g., still act mostly as expected, but not reaching the reported performance).
 
 To run the code, call
 
