@@ -1,0 +1,15 @@
+{
+    "summary": "The code imports libraries, defines a function 'main' that loads and uses a pre-trained model in the MineRL environment, taking two arguments: the path to the model file and weights file. It also adds an optional argument \"--model\" of type string for the file path loading.",
+    "details": [
+        {
+            "comment": "The code imports necessary libraries and defines a function named \"main\" which loads a pre-trained model, creates an agent, and then launches the MineRL environment. The main function takes two arguments: 'model', the path to the pickle file containing the loaded model's parameters; and 'weights', the path to the '.weights' file to be loaded. It then continuously takes actions in the environment based on the pre-trained agent's recommendations until the MineRL environment is completed or terminated.",
+            "location": "\"/media/root/Toshiba XG3/works/Video-Pre-Training/docs/src/run_agent.py\":0-29",
+            "content": "from argparse import ArgumentParser\nimport pickle\nfrom minerl.herobraine.env_specs.human_survival_specs import HumanSurvival\nfrom agent import MineRLAgent, ENV_KWARGS\ndef main(model, weights):\n    env = HumanSurvival(**ENV_KWARGS).make()\n    print(\"---Loading model---\")\n    agent_parameters = pickle.load(open(model, \"rb\"))\n    policy_kwargs = agent_parameters[\"model\"][\"args\"][\"net\"][\"args\"]\n    pi_head_kwargs = agent_parameters[\"model\"][\"args\"][\"pi_head_opts\"]\n    pi_head_kwargs[\"temperature\"] = float(pi_head_kwargs[\"temperature\"])\n    agent = MineRLAgent(env, policy_kwargs=policy_kwargs, pi_head_kwargs=pi_head_kwargs)\n    agent.load_weights(weights)\n    print(\"---Launching MineRL enviroment (be patient)---\")\n    obs = env.reset()\n    while True:\n        minerl_action = agent.get_action(obs)\n        obs, reward, done, info = env.step(minerl_action)\n        env.render()\nif __name__ == \"__main__\":\n    parser = ArgumentParser(\"Run pretrained models on MineRL environment\")\n    parser.add_argument(\"--weights\", type=str, required=True, help=\"Path to the '.weights' file to be loaded.\")"
+        },
+        {
+            "comment": "This code is adding a required argument \"--model\" to the parser, specifying its type as string and loading the file path from this argument.",
+            "location": "\"/media/root/Toshiba XG3/works/Video-Pre-Training/docs/src/run_agent.py\":30-34",
+            "content": "    parser.add_argument(\"--model\", type=str, required=True, help=\"Path to the '.model' file to be loaded.\")\n    args = parser.parse_args()\n    main(args.model, args.weights)"
+        }
+    ]
+}

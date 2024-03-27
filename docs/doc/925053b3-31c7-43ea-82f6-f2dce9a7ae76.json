@@ -1,0 +1,10 @@
+{
+    "summary": "Installs necessary libraries: PyTorch, Gym, attrs, and OpenCV Python.",
+    "details": [
+        {
+            "comment": "Installs necessary libraries: PyTorch, Gym, attrs, and OpenCV Python.",
+            "location": "\"/media/root/Toshiba XG3/works/Video-Pre-Training/docs/src/requirements.txt\":0-3",
+            "content": "torch==1.9.0\ngym3\nattrs\nopencv-python"
+        }
+    ]
+}

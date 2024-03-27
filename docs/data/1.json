@@ -1,0 +1,546 @@
+{
+    "100": {
+        "file_id": 3,
+        "content": "        demonstration_tuples = []\n        for unique_id in unique_ids:\n            video_path = os.path.abspath(os.path.join(dataset_dir, unique_id + \".mp4\"))\n            json_path = os.path.abspath(os.path.join(dataset_dir, unique_id + \".jsonl\"))\n            demonstration_tuples.append((video_path, json_path))\n        assert n_workers <= len(demonstration_tuples), f\"n_workers should be lower or equal than number of demonstrations {len(demonstration_tuples)}\"\n        # Repeat dataset for n_epochs times, shuffling the order for\n        # each epoch\n        self.demonstration_tuples = []\n        for i in range(n_epochs):\n            random.shuffle(demonstration_tuples)\n            self.demonstration_tuples += demonstration_tuples\n        self.task_queue = Queue()\n        self.n_steps_processed = 0\n        for trajectory_id, task in enumerate(self.demonstration_tuples):\n            self.task_queue.put((trajectory_id, *task))\n        for _ in range(n_workers):\n            self.task_queue.put(None)\n        self.output_queues = [Queue(maxsize=max_queue_size) for _ in range(n_workers)]",
+        "type": "code",
+        "location": "/data_loader.py:156-178"
+    },
+    "101": {
+        "file_id": 3,
+        "content": "This code is creating a data loader for video demonstrations. It collects the video and JSONL file paths for each unique ID, shuffles them for each epoch, and adds them to the task queue. It also creates output queues for worker threads.",
+        "type": "comment"
+    },
+    "102": {
+        "file_id": 3,
+        "content": "        self.quit_workers_event = Event()\n        self.processes = [\n            Process(\n                target=data_loader_worker,\n                args=(\n                    self.task_queue,\n                    output_queue,\n                    self.quit_workers_event,\n                ),\n                daemon=True\n            )\n            for output_queue in self.output_queues\n        ]\n        for process in self.processes:\n            process.start()\n    def __iter__(self):\n        return self\n    def __next__(self):\n        batch_frames = []\n        batch_actions = []\n        batch_episode_id = []\n        for i in range(self.batch_size):\n            workitem = self.output_queues[self.n_steps_processed % self.n_workers].get(timeout=QUEUE_TIMEOUT)\n            if workitem is None:\n                # Stop iteration when first worker runs out of work to do.\n                # Yes, this has a chance of cutting out a lot of the work,\n                # but this ensures batches will remain diverse, instead\n                # of having bad ones in the end where potentially",
+        "type": "code",
+        "location": "/data_loader.py:179-209"
+    },
+    "103": {
+        "file_id": 3,
+        "content": "This code sets up data loading workers as separate processes, and then starts them. The iterator function retrieves batch frames, actions, and episode IDs from the output queues of these worker processes until one of the workers runs out of work.",
+        "type": "comment"
+    },
+    "104": {
+        "file_id": 3,
+        "content": "                # one worker outputs all samples to the same batch.\n                raise StopIteration()\n            trajectory_id, frame, action = workitem\n            batch_frames.append(frame)\n            batch_actions.append(action)\n            batch_episode_id.append(trajectory_id)\n            self.n_steps_processed += 1\n        return batch_frames, batch_actions, batch_episode_id\n    def __del__(self):\n        for process in self.processes:\n            process.terminate()\n            process.join()",
+        "type": "code",
+        "location": "/data_loader.py:210-222"
+    },
+    "105": {
+        "file_id": 3,
+        "content": "This code is processing data for a batch of samples, where each worker outputs all samples to the same batch. It appends frames, actions, and episode IDs to their respective lists before returning them as a batch. The `__del__` method ensures all processes are terminated and joined when the object is deleted.",
+        "type": "comment"
+    },
+    "106": {
+        "file_id": 4,
+        "content": "/inverse_dynamics_model.py",
+        "type": "filepath"
+    },
+    "107": {
+        "file_id": 4,
+        "content": "IDMAgent is a Minecraft action predictor using the IDM model, featuring functions for initializing, loading weights, resetting state, and processing video frames. It converts policy output to MineRL format for agent state prediction.",
+        "type": "summary"
+    },
+    "108": {
+        "file_id": 4,
+        "content": "import numpy as np\nimport torch as th\nimport cv2\nfrom gym3.types import DictType\nfrom gym import spaces\nfrom lib.action_mapping import CameraHierarchicalMapping, IDMActionMapping\nfrom lib.actions import ActionTransformer\nfrom lib.policy import InverseActionPolicy\nfrom lib.torch_util import default_device_type, set_default_torch_device\nfrom agent import resize_image, AGENT_RESOLUTION\nACTION_TRANSFORMER_KWARGS = dict(\n    camera_binsize=2,\n    camera_maxval=10,\n    camera_mu=10,\n    camera_quantization_scheme=\"mu_law\",\n)\nclass IDMAgent:\n    \"\"\"\n    Sugarcoating on the inverse dynamics model (IDM) used to predict actions Minecraft players take in videos.\n    Functionally same as MineRLAgent.\n    \"\"\"\n    def __init__(self, idm_net_kwargs, pi_head_kwargs, device=None):\n        if device is None:\n            device = default_device_type()\n        self.device = th.device(device)\n        # Set the default torch device for underlying code as well\n        set_default_torch_device(self.device)\n        self.action_mapper = IDMActionMapping(n_camera_bins=11)",
+        "type": "code",
+        "location": "/inverse_dynamics_model.py:1-33"
+    },
+    "109": {
+        "file_id": 4,
+        "content": "IDMAgent is a class representing an agent that uses the inverse dynamics model (IDM) to predict Minecraft player actions in videos. It has an action mapper and is initialized with idm_net_kwargs, pi_head_kwargs, and device (default device type if None).",
+        "type": "comment"
+    },
+    "110": {
+        "file_id": 4,
+        "content": "        action_space = self.action_mapper.get_action_space_update()\n        action_space = DictType(**action_space)\n        self.action_transformer = ActionTransformer(**ACTION_TRANSFORMER_KWARGS)\n        idm_policy_kwargs = dict(idm_net_kwargs=idm_net_kwargs, pi_head_kwargs=pi_head_kwargs, action_space=action_space)\n        self.policy = InverseActionPolicy(**idm_policy_kwargs).to(device)\n        self.hidden_state = self.policy.initial_state(1)\n        self._dummy_first = th.from_numpy(np.array((False,))).to(device)\n    def load_weights(self, path):\n        \"\"\"Load model weights from a path, and reset hidden state\"\"\"\n        self.policy.load_state_dict(th.load(path, map_location=self.device), strict=False)\n        self.reset()\n    def reset(self):\n        \"\"\"Reset agent to initial state (i.e., reset hidden state)\"\"\"\n        self.hidden_state = self.policy.initial_state(1)\n    def _video_obs_to_agent(self, video_frames):\n        imgs = [resize_image(frame, AGENT_RESOLUTION) for frame in video_frames]\n        # Add time and batch dim",
+        "type": "code",
+        "location": "/inverse_dynamics_model.py:34-56"
+    },
+    "111": {
+        "file_id": 4,
+        "content": "Function: __init__\n- Initializes the agent with specified parameters and loads initial weights.\n\nFunction: load_weights\n- Loads model weights from a path and resets the hidden state of the agent.\n\nFunction: reset\n- Resets the agent to its initial state by setting the hidden state to the result of the policy's initial_state method with an argument of 1.\n\nFunction:_video_obs_to_agent\n- Takes a list of video frames, resizes them to AGENT_RESOLUTION, and returns the processed images for the agent to use.",
+        "type": "comment"
+    },
+    "112": {
+        "file_id": 4,
+        "content": "        imgs = np.stack(imgs)[None]\n        agent_input = {\"img\": th.from_numpy(imgs).to(self.device)}\n        return agent_input\n    def _agent_action_to_env(self, agent_action):\n        \"\"\"Turn output from policy into action for MineRL\"\"\"\n        # This is quite important step (for some reason).\n        # For the sake of your sanity, remember to do this step (manual conversion to numpy)\n        # before proceeding. Otherwise, your agent might be a little derp.\n        action = {\n            \"buttons\": agent_action[\"buttons\"].cpu().numpy(),\n            \"camera\": agent_action[\"camera\"].cpu().numpy()\n        }\n        minerl_action = self.action_mapper.to_factored(action)\n        minerl_action_transformed = self.action_transformer.policy2env(minerl_action)\n        return minerl_action_transformed\n    def predict_actions(self, video_frames):\n        \"\"\"\n        Predict actions for a sequence of frames.\n        `video_frames` should be of shape (N, H, W, C).\n        Returns MineRL action dict, where each action head",
+        "type": "code",
+        "location": "/inverse_dynamics_model.py:57-79"
+    },
+    "113": {
+        "file_id": 4,
+        "content": "Code snippet:\n```python\n    def _agent_action_to_env(self, agent_action):\n        \"\"\"Turn output from policy into action for MineRL\"\"\"\n        # Manual conversion to numpy is important.\n        action = {\n            \"buttons\": agent_action[\"buttons\"].cpu().numpy(),\n            \"camera\": agent_action[\"camera\"].cpu().numpy()\n        }\n```\nComment: Converts policy output to MineRL action format using manual numpy conversion",
+        "type": "comment"
+    },
+    "114": {
+        "file_id": 4,
+        "content": "        has shape (N, ...).\n        Agent's hidden state is tracked internally. To reset it,\n        call `reset()`.\n        \"\"\"\n        agent_input = self._video_obs_to_agent(video_frames)\n        # The \"first\" argument could be used to reset tell episode\n        # boundaries, but we are only using this for predicting (for now),\n        # so we do not hassle with it yet.\n        dummy_first = th.zeros((video_frames.shape[0], 1)).to(self.device)\n        predicted_actions, self.hidden_state, _ = self.policy.predict(\n            agent_input, first=dummy_first, state_in=self.hidden_state,\n            deterministic=True\n        )\n        predicted_minerl_action = self._agent_action_to_env(predicted_actions)\n        return predicted_minerl_action",
+        "type": "code",
+        "location": "/inverse_dynamics_model.py:80-95"
+    },
+    "115": {
+        "file_id": 4,
+        "content": "This function takes video frames as input, converts them to agent input, and uses the policy model to predict actions. It also maintains an internal hidden state for tracking the agent's state and can be reset using `reset()`.",
+        "type": "comment"
+    },
+    "116": {
+        "file_id": 5,
+        "content": "/lib/action_head.py",
+        "type": "filepath"
+    },
+    "117": {
+        "file_id": 5,
+        "content": "The code introduces an `ActionHead` abstract base class for reinforcement learning action heads, including methods such as logprob, sample, entropy, and kl_divergence. It supports Discrete, Real, and DictType action spaces and has reset parameters and forward pass functionality.",
+        "type": "summary"
+    },
+    "118": {
+        "file_id": 5,
+        "content": "import logging\nfrom typing import Any, Tuple\nimport numpy as np\nimport torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nimport torch.nn.init as init\nfrom gym3.types import DictType, Discrete, Real, TensorType, ValType\nLOG0 = -100\ndef fan_in_linear(module: nn.Module, scale=1.0, bias=True):\n    \"\"\"Fan-in init\"\"\"\n    module.weight.data *= scale / module.weight.norm(dim=1, p=2, keepdim=True)\n    if bias:\n        module.bias.data *= 0\nclass ActionHead(nn.Module):\n    \"\"\"Abstract base class for action heads compatible with forc\"\"\"\n    def forward(self, input_data: torch.Tensor) -> Any:\n        \"\"\"\n        Just a forward pass through this head\n        :returns pd_params - parameters describing the probability distribution\n        \"\"\"\n        raise NotImplementedError\n    def logprob(self, action_sample: torch.Tensor, pd_params: torch.Tensor) -> torch.Tensor:\n        \"\"\"Logartithm of probability of sampling `action_sample` from a probability described by `pd_params`\"\"\"\n        raise NotImplementedError\n    def entropy(self, pd_params: torch.Tensor) -> torch.Tensor:",
+        "type": "code",
+        "location": "/lib/action_head.py:1-36"
+    },
+    "119": {
+        "file_id": 5,
+        "content": "This code defines an ActionHead class and a fan_in_linear function. ActionHead is an abstract base class for action heads, which are used in reinforcement learning to determine the optimal actions. The fan_in_linear function initializes the weights of the linear layer using the Fan-in initialization method.",
+        "type": "comment"
+    },
+    "120": {
+        "file_id": 5,
+        "content": "        \"\"\"Entropy of this distribution\"\"\"\n        raise NotImplementedError\n    def sample(self, pd_params: torch.Tensor, deterministic: bool = False) -> Any:\n        \"\"\"\n        Draw a sample from probability distribution given by those params\n        :param pd_params Parameters of a probability distribution\n        :param deterministic Whether to return a stochastic sample or deterministic mode of a distribution\n        \"\"\"\n        raise NotImplementedError\n    def kl_divergence(self, params_q: torch.Tensor, params_p: torch.Tensor) -> torch.Tensor:\n        \"\"\"KL divergence between two distribution described by these two params\"\"\"\n        raise NotImplementedError\nclass DiagGaussianActionHead(ActionHead):\n    \"\"\"\n    Action head where actions are normally distributed uncorrelated variables with specific means and variances.\n    Means are calculated directly from the network while standard deviations are a parameter of this module\n    \"\"\"\n    LOG2PI = np.log(2.0 * np.pi)\n    def __init__(self, input_dim: int, num_dimensions: int):",
+        "type": "code",
+        "location": "/lib/action_head.py:37-63"
+    },
+    "121": {
+        "file_id": 5,
+        "content": "This code defines an abstract base class `ActionHead` for entropy, sampling, and KL divergence calculation. It raises a NotImplementedError since subclasses should provide the actual implementation of these methods. The `DiagGaussianActionHead` class is also defined, which inherits from `ActionHead`, representing action heads with normally distributed uncorrelated variables based on network output mean and standard deviation parameters.",
+        "type": "comment"
+    },
+    "122": {
+        "file_id": 5,
+        "content": "        super().__init__()\n        self.input_dim = input_dim\n        self.num_dimensions = num_dimensions\n        self.linear_layer = nn.Linear(input_dim, num_dimensions)\n        self.log_std = nn.Parameter(torch.zeros(num_dimensions), requires_grad=True)\n    def reset_parameters(self):\n        init.orthogonal_(self.linear_layer.weight, gain=0.01)\n        init.constant_(self.linear_layer.bias, 0.0)\n    def forward(self, input_data: torch.Tensor, mask=None) -> torch.Tensor:\n        assert not mask, \"Can not use a mask in a gaussian action head\"\n        means = self.linear_layer(input_data)\n        # Unsqueeze many times to get to the same shape\n        logstd = self.log_std[(None,) * (len(means.shape) - 1)]\n        mean_view, logstd = torch.broadcast_tensors(means, logstd)\n        return torch.stack([mean_view, logstd], dim=-1)\n    def logprob(self, action_sample: torch.Tensor, pd_params: torch.Tensor) -> torch.Tensor:\n        \"\"\"Log-likelihood\"\"\"\n        means = pd_params[..., 0]\n        log_std = pd_params[..., 1]",
+        "type": "code",
+        "location": "/lib/action_head.py:64-89"
+    },
+    "123": {
+        "file_id": 5,
+        "content": "Initializes an action head with specified input and output dimensions, sets the linear layer's weight and bias using orthogonal initialization and assigns them to None respectively.\nDefines methods to reset parameters for the action head, forward propagates data through linear layer to obtain means, and calculates log probabilities of action samples given parameters.",
+        "type": "comment"
+    },
+    "124": {
+        "file_id": 5,
+        "content": "        std = torch.exp(log_std)\n        z_score = (action_sample - means) / std\n        return -(0.5 * ((z_score ** 2 + self.LOG2PI).sum(dim=-1)) + log_std.sum(dim=-1))\n    def entropy(self, pd_params: torch.Tensor) -> torch.Tensor:\n        \"\"\"\n        Categorical distribution entropy calculation - sum probs * log(probs).\n        In case of diagonal gaussian distribution - 1/2 log(2 pi e sigma^2)\n        \"\"\"\n        log_std = pd_params[..., 1]\n        return (log_std + 0.5 * (self.LOG2PI + 1)).sum(dim=-1)\n    def sample(self, pd_params: torch.Tensor, deterministic: bool = False) -> torch.Tensor:\n        means = pd_params[..., 0]\n        log_std = pd_params[..., 1]\n        if deterministic:\n            return means\n        else:\n            return torch.randn_like(means) * torch.exp(log_std) + means\n    def kl_divergence(self, params_q: torch.Tensor, params_p: torch.Tensor) -> torch.Tensor:\n        \"\"\"\n        Categorical distribution KL divergence calculation\n        KL(Q || P) = sum Q_i log (Q_i / P_i)\n        Formula is:",
+        "type": "code",
+        "location": "/lib/action_head.py:91-119"
+    },
+    "125": {
+        "file_id": 5,
+        "content": "Line 90: Calculate standard deviation from log_std\nLine 116: Calculate z-score for action sample\nLine 117: Return negative of sum of log probabilities\n\nComment for code: This code calculates the categorical distribution entropy, sample from a diagonal Gaussian distribution, and KL divergence for two sets of parameters.",
+        "type": "comment"
+    },
+    "126": {
+        "file_id": 5,
+        "content": "        log(sigma_p) - log(sigma_q) + (sigma_q^2 + (mu_q - mu_p)^2))/(2 * sigma_p^2)\n        \"\"\"\n        means_q = params_q[..., 0]\n        log_std_q = params_q[..., 1]\n        means_p = params_p[..., 0]\n        log_std_p = params_p[..., 1]\n        std_q = torch.exp(log_std_q)\n        std_p = torch.exp(log_std_p)\n        kl_div = log_std_p - log_std_q + (std_q ** 2 + (means_q - means_p) ** 2) / (2.0 * std_p ** 2) - 0.5\n        return kl_div.sum(dim=-1, keepdim=True)\nclass CategoricalActionHead(ActionHead):\n    \"\"\"Action head with categorical actions\"\"\"\n    def __init__(\n        self, input_dim: int, shape: Tuple[int], num_actions: int, builtin_linear_layer: bool = True, temperature: float = 1.0\n    ):\n        super().__init__()\n        self.input_dim = input_dim\n        self.num_actions = num_actions\n        self.output_shape = shape + (num_actions,)\n        self.temperature = temperature\n        if builtin_linear_layer:\n            self.linear_layer = nn.Linear(input_dim, np.prod(self.output_shape))\n        else:",
+        "type": "code",
+        "location": "/lib/action_head.py:120-151"
+    },
+    "127": {
+        "file_id": 5,
+        "content": "This code defines an ActionHead class with categorical actions. It initializes the action head with input_dim, num_actions, shape, builtin_linear_layer (optional), and temperature parameters. If builtin_linear_layer is True, it uses a linear layer for feature extraction. The output shape is determined by the input shape and number of actions.",
+        "type": "comment"
+    },
+    "128": {
+        "file_id": 5,
+        "content": "            assert (\n                input_dim == num_actions\n            ), f\"If input_dim ({input_dim}) != num_actions ({num_actions}), you need a linear layer to convert them.\"\n            self.linear_layer = None\n    def reset_parameters(self):\n        if self.linear_layer is not None:\n            init.orthogonal_(self.linear_layer.weight, gain=0.01)\n            init.constant_(self.linear_layer.bias, 0.0)\n            finit.fan_in_linear(self.linear_layer, scale=0.01)\n    def forward(self, input_data: torch.Tensor, mask=None) -> Any:\n        if self.linear_layer is not None:\n            flat_out = self.linear_layer(input_data)\n        else:\n            flat_out = input_data\n        shaped_out = flat_out.reshape(flat_out.shape[:-1] + self.output_shape)\n        shaped_out /= self.temperature\n        if mask is not None:\n            shaped_out[~mask] = LOG0\n        # Convert to float32 to avoid RuntimeError: \"log_softmax_lastdim_kernel_impl\" not implemented for 'Half'\n        return F.log_softmax(shaped_out.float(), dim=-1)",
+        "type": "code",
+        "location": "/lib/action_head.py:152-174"
+    },
+    "129": {
+        "file_id": 5,
+        "content": "This code defines a class for an action head, which is responsible for outputting action probabilities from input data. It asserts that the input dimension matches the number of actions, and if a linear layer is not None, it initializes its parameters orthogonally with gain 0.01 and sets the bias to 0. The forward function computes the output by either passing the input through a linear layer or using the input directly, reshapes the result based on the output shape, scales the result by temperature, applies a mask if provided, and then returns the log softmax of the shaped output as float32.",
+        "type": "comment"
+    },
+    "130": {
+        "file_id": 5,
+        "content": "    def logprob(self, actions: torch.Tensor, logits: torch.Tensor) -> torch.Tensor:\n        value = actions.long().unsqueeze(-1)\n        value, log_pmf = torch.broadcast_tensors(value, logits)\n        value = value[..., :1]\n        result = log_pmf.gather(-1, value).squeeze(-1)\n        # result is per-entry, still of size self.output_shape[:-1]; we need to reduce of the rest of it.\n        for _ in self.output_shape[:-1]:\n            result = result.sum(dim=-1)\n        return result\n    def entropy(self, logits: torch.Tensor) -> torch.Tensor:\n        \"\"\"Categorical distribution entropy calculation - sum probs * log(probs)\"\"\"\n        probs = torch.exp(logits)\n        entropy = -torch.sum(probs * logits, dim=-1)\n        # entropy is per-entry, still of size self.output_shape[:-1]; we need to reduce of the rest of it.\n        for _ in self.output_shape[:-1]:\n            entropy = entropy.sum(dim=-1)\n        return entropy\n    def sample(self, logits: torch.Tensor, deterministic: bool = False) -> Any:\n        if deterministic:",
+        "type": "code",
+        "location": "/lib/action_head.py:176-196"
+    },
+    "131": {
+        "file_id": 5,
+        "content": "The code contains three functions: `logprob`, `entropy`, and `sample`. \n- The `logprob` function calculates the log probability of a given set of actions against the provided logits. It returns the result in torch format.\n- The `entropy` function calculates the entropy of a categorical distribution from the given logits. It also returns the entropy in torch format.\n- The `sample` function generates a sample from the distribution represented by the given logits. If `deterministic` is set to True, it will always return the same value.",
+        "type": "comment"
+    },
+    "132": {
+        "file_id": 5,
+        "content": "            return torch.argmax(logits, dim=-1)\n        else:\n            # Gumbel-Softmax trick.\n            u = torch.rand_like(logits)\n            # In float16, if you have around 2^{float_mantissa_bits} logits, sometimes you'll sample 1.0\n            # Then the log(-log(1.0)) will give -inf when it should give +inf\n            # This is a silly hack to get around that.\n            # This hack does not skew the probability distribution, because this event can't possibly win the argmax.\n            u[u == 1.0] = 0.999\n            return torch.argmax(logits - torch.log(-torch.log(u)), dim=-1)\n    def kl_divergence(self, logits_q: torch.Tensor, logits_p: torch.Tensor) -> torch.Tensor:\n        \"\"\"\n        Categorical distribution KL divergence calculation\n        KL(Q || P) = sum Q_i log (Q_i / P_i)\n        When talking about logits this is:\n        sum exp(Q_i) * (Q_i - P_i)\n        \"\"\"\n        kl = (torch.exp(logits_q) * (logits_q - logits_p)).sum(-1, keepdim=True)\n        # kl is per-entry, still of size self.output_shape; we need to reduce of the rest of it.",
+        "type": "code",
+        "location": "/lib/action_head.py:197-217"
+    },
+    "133": {
+        "file_id": 5,
+        "content": "Returns the index with maximum value in logits\"\n\"Applies Gumbel-Softmax trick for training with float16 precision\"\n\"Calculates KL divergence between two categorical distributions using logits",
+        "type": "comment"
+    },
+    "134": {
+        "file_id": 5,
+        "content": "        for _ in self.output_shape[:-1]:\n            kl = kl.sum(dim=-2)  # dim=-2 because we use keepdim=True above.\n        return kl\nclass DictActionHead(nn.ModuleDict):\n    \"\"\"Action head with multiple sub-actions\"\"\"\n    def reset_parameters(self):\n        for subhead in self.values():\n            subhead.reset_parameters()\n    def forward(self, input_data: torch.Tensor, **kwargs) -> Any:\n        \"\"\"\n        :param kwargs: each kwarg should be a dict with keys corresponding to self.keys()\n                e.g. if this ModuleDict has submodules keyed by 'A', 'B', and 'C', we could call:\n                    forward(input_data, foo={'A': True, 'C': False}, bar={'A': 7}}\n                Then children will be called with:\n                    A: forward(input_data, foo=True, bar=7)\n                    B: forward(input_data)\n                    C: forward(input_Data, foo=False)\n        \"\"\"\n        result = {}\n        for head_name, subhead in self.items():\n            head_kwargs = {\n                kwarg_name: kwarg[head_name]",
+        "type": "code",
+        "location": "/lib/action_head.py:218-243"
+    },
+    "135": {
+        "file_id": 5,
+        "content": "This code defines a DictActionHead class, which is an action head with multiple sub-actions. The class has methods to reset parameters and perform forward pass. During the forward pass, it takes input data and optional keyword arguments, and calls the forward method on each of its submodules using the provided keyword arguments. The results from all submodules are stored in a dictionary.",
+        "type": "comment"
+    },
+    "136": {
+        "file_id": 5,
+        "content": "                for kwarg_name, kwarg in kwargs.items()\n                if kwarg is not None and head_name in kwarg\n            }\n            result[head_name] = subhead(input_data, **head_kwargs)\n        return result\n    def logprob(self, actions: torch.Tensor, logits: torch.Tensor) -> torch.Tensor:\n        return sum(subhead.logprob(actions[k], logits[k]) for k, subhead in self.items())\n    def sample(self, logits: torch.Tensor, deterministic: bool = False) -> Any:\n        return {k: subhead.sample(logits[k], deterministic) for k, subhead in self.items()}\n    def entropy(self, logits: torch.Tensor) -> torch.Tensor:\n        return sum(subhead.entropy(logits[k]) for k, subhead in self.items())\n    def kl_divergence(self, logits_q: torch.Tensor, logits_p: torch.Tensor) -> torch.Tensor:\n        return sum(subhead.kl_divergence(logits_q[k], logits_p[k]) for k, subhead in self.items())\ndef make_action_head(ac_space: ValType, pi_out_size: int, temperature: float = 1.0):\n    \"\"\"Helper function to create an action head corresponding to the environment action space\"\"\"",
+        "type": "code",
+        "location": "/lib/action_head.py:244-264"
+    },
+    "137": {
+        "file_id": 5,
+        "content": "The code defines an action head class that contains sub-heads corresponding to the environment's action space. It supports logprob, sample, entropy, and kl_divergence methods on a batch of actions and logits. The make_action_head function creates an action head based on the given action space and output size of the policy network.",
+        "type": "comment"
+    },
+    "138": {
+        "file_id": 5,
+        "content": "    if isinstance(ac_space, TensorType):\n        if isinstance(ac_space.eltype, Discrete):\n            return CategoricalActionHead(pi_out_size, ac_space.shape, ac_space.eltype.n, temperature=temperature)\n        elif isinstance(ac_space.eltype, Real):\n            if temperature != 1.0:\n                logging.warning(\"Non-1 temperature not implemented for DiagGaussianActionHead.\")\n            assert len(ac_space.shape) == 1, \"Nontrivial shapes not yet implemented.\"\n            return DiagGaussianActionHead(pi_out_size, ac_space.shape[0])\n    elif isinstance(ac_space, DictType):\n        return DictActionHead({k: make_action_head(v, pi_out_size, temperature) for k, v in ac_space.items()})\n    raise NotImplementedError(f\"Action space of type {type(ac_space)} is not supported\")",
+        "type": "code",
+        "location": "/lib/action_head.py:265-275"
+    },
+    "139": {
+        "file_id": 5,
+        "content": "Checks the type of action space and returns a corresponding ActionHead object. Supports Discrete, Real, and DictType action spaces. Non-1 temperature and nontrivial shape actions are not implemented yet.",
+        "type": "comment"
+    },
+    "140": {
+        "file_id": 6,
+        "content": "/lib/action_mapping.py",
+        "type": "filepath"
+    },
+    "141": {
+        "file_id": 6,
+        "content": "This code organizes player inputs in a video game using action mappings, manages camera actions, handles assertion checks and conversions for different action spaces like buttons, cameras, inventory keys, and factored action space mapping.",
+        "type": "summary"
+    },
+    "142": {
+        "file_id": 6,
+        "content": "import abc\nimport itertools\nfrom collections import OrderedDict\nfrom typing import Dict, List\nimport numpy as np\nfrom gym3.types import DictType, Discrete, TensorType\nfrom lib.actions import Buttons\nclass ActionMapping(abc.ABC):\n    \"\"\"Class that maps between the standard MC factored action space and a new one you define!\n    :param n_camera_bins: Need to specify this to define the original ac space for stats code\n    \"\"\"\n    # This is the default buttons groups, it can be changed for your action space\n    BUTTONS_GROUPS = OrderedDict(\n        hotbar=[\"none\"] + [f\"hotbar.{i}\" for i in range(1, 10)],\n        fore_back=[\"none\", \"forward\", \"back\"],\n        left_right=[\"none\", \"left\", \"right\"],\n        sprint_sneak=[\"none\", \"sprint\", \"sneak\"],\n        use=[\"none\", \"use\"],\n        drop=[\"none\", \"drop\"],\n        attack=[\"none\", \"attack\"],\n        jump=[\"none\", \"jump\"],\n    )\n    def __init__(self, n_camera_bins: int = 11):\n        assert n_camera_bins % 2 == 1, \"n_camera_bins should be odd\"\n        self.n_camera_bins = n_camera_bins",
+        "type": "code",
+        "location": "/lib/action_mapping.py:1-32"
+    },
+    "143": {
+        "file_id": 6,
+        "content": "This code defines a class \"ActionMapping\" that maps between the standard Minecraft action space and a new one defined by the user. It uses ordered dictionaries to represent different action groups such as buttons, and requires an odd number of camera bins for initialization.",
+        "type": "comment"
+    },
+    "144": {
+        "file_id": 6,
+        "content": "        self.camera_null_bin = n_camera_bins // 2\n        self.stats_ac_space = DictType(\n            **{\n                \"buttons\": TensorType(shape=(len(Buttons.ALL),), eltype=Discrete(2)),\n                \"camera\": TensorType(shape=(2,), eltype=Discrete(n_camera_bins)),\n            }\n        )\n    @abc.abstractmethod\n    def from_factored(self, ac: Dict) -> Dict:\n        \"\"\"Converts a factored action (ac) to the new space\n        :param ac: Dictionary of actions that must have a batch dimension\n        \"\"\"\n        pass\n    @abc.abstractmethod\n    def to_factored(self, ac: Dict) -> Dict:\n        \"\"\"Converts an action in the new space (ac) to the factored action space.\n        :param ac: Dictionary of actions that must have a batch dimension\n        \"\"\"\n        pass\n    @abc.abstractmethod\n    def get_action_space_update(self):\n        \"\"\"Return a magym (gym3) action space. This will be used to update the env action space.\"\"\"\n        pass\n    @abc.abstractmethod\n    def get_zero_action(self):\n        \"\"\"Return the zero or null action for this action space\"\"\"",
+        "type": "code",
+        "location": "/lib/action_mapping.py:33-64"
+    },
+    "145": {
+        "file_id": 6,
+        "content": "This code defines an abstract base class for mapping actions to a new space. It includes methods for converting factored actions to the new space, converting actions in the new space back to the factored action space, returning a gym action space for updating the environment, and returning the null or zero action for this action space.",
+        "type": "comment"
+    },
+    "146": {
+        "file_id": 6,
+        "content": "        pass\n    def factored_buttons_to_groups(self, ac_buttons: np.ndarray, button_group: List[str]) -> List[str]:\n        \"\"\"For a mutually exclusive group of buttons in button_group, find which option\n        in the group was chosen. Assumes that each button group has the option of 'none'\n        meaning that no button in the group was pressed.\n        :param ac_buttons: button actions from the factored action space. Should dims [B, len(Buttons.ALL)]\n        :param button_group: List of buttons in a mutually exclusive group. Each item in the\n            list should appear in Buttons.ALL except for the special case 'none' which means\n            no button in the group was pressed. e.g. ['none', 'forward', 'back']. For now\n            'none' must be the first element of button_group\n        Returns a list of length B, where each element is an item from button_group.\n        \"\"\"\n        assert ac_buttons.shape[1] == len(\n            Buttons.ALL\n        ), f\"There should be {len(Buttons.ALL)} buttons in the factored buttons space\"",
+        "type": "code",
+        "location": "/lib/action_mapping.py:65-82"
+    },
+    "147": {
+        "file_id": 6,
+        "content": "This function takes in button actions from a factored action space and a list of mutually exclusive buttons. It returns a list indicating which button (or none if no button was pressed) was chosen for each item in the input array, given that each group has the option of 'none'. The function checks if the shape of the input matches the expected number of buttons.",
+        "type": "comment"
+    },
+    "148": {
+        "file_id": 6,
+        "content": "        assert button_group[0] == \"none\", \"This function only works if 'none' is in button_group\"\n        # Actions in ac_buttons with order according to button_group\n        group_indices = [Buttons.ALL.index(b) for b in button_group if b != \"none\"]\n        ac_choices = ac_buttons[:, group_indices]\n        # Special cases for forward/back, left/right where mutual press means do neither\n        if \"forward\" in button_group and \"back\" in button_group:\n            ac_choices[np.all(ac_choices, axis=-1)] = 0\n        if \"left\" in button_group and \"right\" in button_group:\n            ac_choices[np.all(ac_choices, axis=-1)] = 0\n        ac_non_zero = np.where(ac_choices)\n        ac_choice = [\"none\" for _ in range(ac_buttons.shape[0])]\n        # Iterate over the non-zero indices so that if two buttons in a group were pressed at the same time\n        # we give priority to the button later in the group. E.g. if hotbar.1 and hotbar.2 are pressed during the same\n        # timestep, hotbar.2 is marked as pressed",
+        "type": "code",
+        "location": "/lib/action_mapping.py:83-97"
+    },
+    "149": {
+        "file_id": 6,
+        "content": "Ensures function works only when 'none' is in button_group. Maps non-zero action button indices to corresponding actions, handling special cases of mutual press for forward/back and left/right. Prioritizes later buttons in group if pressed at the same time.",
+        "type": "comment"
+    },
+    "150": {
+        "file_id": 6,
+        "content": "        for index, action in zip(ac_non_zero[0], ac_non_zero[1]):\n            ac_choice[index] = button_group[action + 1]  # the zero'th index will mean no button pressed\n        return ac_choice\nclass IDMActionMapping(ActionMapping):\n    \"\"\"For IDM, but essentially this is just an identity mapping\"\"\"\n    def from_factored(self, ac: Dict) -> Dict:\n        return ac\n    def to_factored(self, ac: Dict) -> Dict:\n        return ac\n    def get_action_space_update(self):\n        \"\"\"Return a magym (gym3) action space. This will be used to update the env action space.\"\"\"\n        return {\n            \"buttons\": TensorType(shape=(len(Buttons.ALL),), eltype=Discrete(2)),\n            \"camera\": TensorType(shape=(2,), eltype=Discrete(self.n_camera_bins)),\n        }\n    def get_zero_action(self):\n        raise NotImplementedError()\nclass CameraHierarchicalMapping(ActionMapping):\n    \"\"\"Buttons are joint as in ButtonsJointMapping, but now a camera on/off meta action is added into this joint space.\n    When this meta action is triggered, the separate camera head chooses a camera action which is also now a joint space.",
+        "type": "code",
+        "location": "/lib/action_mapping.py:98-122"
+    },
+    "151": {
+        "file_id": 6,
+        "content": "This code defines two classes, IDMActionMapping and CameraHierarchicalMapping, which are action mappings used in a video game. The classes define methods to convert actions between factored and non-factored representations, get an action space update, and handle zero actions. These classes seem to be part of a larger system for mapping player inputs to actions in the game environment.",
+        "type": "comment"
+    },
+    "152": {
+        "file_id": 6,
+        "content": "    :param n_camera_bins: number of camera bins in the factored space\n    \"\"\"\n    # Add camera meta action to BUTTONS_GROUPS\n    BUTTONS_GROUPS = ActionMapping.BUTTONS_GROUPS.copy()\n    BUTTONS_GROUPS[\"camera\"] = [\"none\", \"camera\"]\n    BUTTONS_COMBINATIONS = list(itertools.product(*BUTTONS_GROUPS.values())) + [\"inventory\"]\n    BUTTONS_COMBINATION_TO_IDX = {comb: i for i, comb in enumerate(BUTTONS_COMBINATIONS)}\n    BUTTONS_IDX_TO_COMBINATION = {i: comb for i, comb in enumerate(BUTTONS_COMBINATIONS)}\n    def __init__(self, *args, **kwargs):\n        super().__init__(*args, **kwargs)\n        self.camera_groups = OrderedDict(\n            camera_x=[f\"camera_x{i}\" for i in range(self.n_camera_bins)],\n            camera_y=[f\"camera_y{i}\" for i in range(self.n_camera_bins)],\n        )\n        self.camera_combinations = list(itertools.product(*self.camera_groups.values()))\n        self.camera_combination_to_idx = {comb: i for i, comb in enumerate(self.camera_combinations)}\n        self.camera_idx_to_combination = {i: comb for i, comb in enumerate(self.camera_combinations)}",
+        "type": "code",
+        "location": "/lib/action_mapping.py:124-142"
+    },
+    "153": {
+        "file_id": 6,
+        "content": "This code adds camera meta actions to the BUTTONS_GROUPS and defines functions for mapping between button combinations, indices, and names.",
+        "type": "comment"
+    },
+    "154": {
+        "file_id": 6,
+        "content": "        self.camera_null_idx = self.camera_combination_to_idx[\n            (f\"camera_x{self.camera_null_bin}\", f\"camera_y{self.camera_null_bin}\")\n        ]\n        self._null_action = {\n            \"buttons\": self.BUTTONS_COMBINATION_TO_IDX[tuple(\"none\" for _ in range(len(self.BUTTONS_GROUPS)))]\n        }\n        self._precompute_to_factored()\n    def _precompute_to_factored(self):\n        \"\"\"Precompute the joint action -> factored action matrix.\"\"\"\n        button_dim = self.stats_ac_space[\"buttons\"].size\n        self.BUTTON_IDX_TO_FACTORED = np.zeros((len(self.BUTTONS_IDX_TO_COMBINATION), button_dim), dtype=int)\n        self.BUTTON_IDX_TO_CAMERA_META_OFF = np.zeros((len(self.BUTTONS_IDX_TO_COMBINATION)), dtype=bool)\n        self.CAMERA_IDX_TO_FACTORED = np.zeros((len(self.camera_idx_to_combination), 2), dtype=int)\n        # Pre compute Buttons\n        for jnt_ac, button_comb in self.BUTTONS_IDX_TO_COMBINATION.items():\n            new_button_ac = np.zeros(len(Buttons.ALL), dtype=\"i\")\n            if button_comb == \"inventory\":",
+        "type": "code",
+        "location": "/lib/action_mapping.py:143-161"
+    },
+    "155": {
+        "file_id": 6,
+        "content": "Code chunk sets up arrays for button and camera action mappings.\nThe code defines button and camera indices, initializes arrays to store the factored actions for each joint action, and begins processing the button combinations.",
+        "type": "comment"
+    },
+    "156": {
+        "file_id": 6,
+        "content": "                new_button_ac[Buttons.ALL.index(\"inventory\")] = 1\n            else:\n                for group_choice in button_comb[:-1]:  # Last one is camera\n                    if group_choice != \"none\":\n                        new_button_ac[Buttons.ALL.index(group_choice)] = 1\n                if button_comb[-1] != \"camera\":  # This means camera meta action is off\n                    self.BUTTON_IDX_TO_CAMERA_META_OFF[jnt_ac] = True\n            self.BUTTON_IDX_TO_FACTORED[jnt_ac] = new_button_ac\n        # Pre compute camera\n        for jnt_ac, camera_comb in self.camera_idx_to_combination.items():\n            new_camera_ac = np.ones((2), dtype=\"i\") * self.camera_null_bin\n            new_camera_ac[0] = self.camera_groups[\"camera_x\"].index(camera_comb[0])\n            new_camera_ac[1] = self.camera_groups[\"camera_y\"].index(camera_comb[1])\n            self.CAMERA_IDX_TO_FACTORED[jnt_ac] = new_camera_ac\n    def from_factored(self, ac: Dict) -> Dict:\n        \"\"\"Converts a factored action (ac) to the new space. Assumes ac has a batch dim\"\"\"",
+        "type": "code",
+        "location": "/lib/action_mapping.py:162-180"
+    },
+    "157": {
+        "file_id": 6,
+        "content": "Code is creating factored representations of action and camera combinations for each joint. It initializes new_button_ac to 1 for all inventory buttons, then checks if any other groups are selected and assigns those indices to 1 in new_button_ac. If the last combination is not \"camera\", it sets the camera_meta_off flag. Then it creates new_camera_ac with indices based on the camera group combinations and stores these factored representations for both action and camera in their respective dictionaries.",
+        "type": "comment"
+    },
+    "158": {
+        "file_id": 6,
+        "content": "        assert ac[\"camera\"].ndim == 2, f\"bad camera label, {ac['camera']}\"\n        assert ac[\"buttons\"].ndim == 2, f\"bad buttons label, {ac['buttons']}\"\n        # Get button choices for everything but camera\n        choices_by_group = OrderedDict(\n            (k, self.factored_buttons_to_groups(ac[\"buttons\"], v)) for k, v in self.BUTTONS_GROUPS.items() if k != \"camera\"\n        )\n        # Set camera \"on off\" action based on whether non-null camera action was given\n        camera_is_null = np.all(ac[\"camera\"] == self.camera_null_bin, axis=1)\n        choices_by_group[\"camera\"] = [\"none\" if is_null else \"camera\" for is_null in camera_is_null]\n        new_button_ac = []\n        new_camera_ac = []\n        for i in range(ac[\"buttons\"].shape[0]):\n            # Buttons\n            key = tuple([v[i] for v in choices_by_group.values()])\n            if ac[\"buttons\"][i, Buttons.ALL.index(\"inventory\")] == 1:\n                key = \"inventory\"\n            new_button_ac.append(self.BUTTONS_COMBINATION_TO_IDX[key])\n            # Camera -- inventory is also exclusive with camera",
+        "type": "code",
+        "location": "/lib/action_mapping.py:181-200"
+    },
+    "159": {
+        "file_id": 6,
+        "content": "This code is performing an assertion check to ensure that the \"camera\" and \"buttons\" labels have the correct dimensions. It then creates a dictionary of button choices for each group except camera, sets the camera action based on whether a non-null camera action was given, and finally generates new arrays of button and camera actions based on the choices.",
+        "type": "comment"
+    },
+    "160": {
+        "file_id": 6,
+        "content": "            if key == \"inventory\":\n                key = (\n                    f\"camera_x{self.camera_null_bin}\",\n                    f\"camera_y{self.camera_null_bin}\",\n                )\n            else:\n                key = (f\"camera_x{ac['camera'][i][0]}\", f\"camera_y{ac['camera'][i][1]}\")\n            new_camera_ac.append(self.camera_combination_to_idx[key])\n        return dict(\n            buttons=np.array(new_button_ac)[:, None],\n            camera=np.array(new_camera_ac)[:, None],\n        )\n    def to_factored(self, ac: Dict) -> Dict:\n        \"\"\"Converts an action in the new space (ac) to the factored action space. Assumes ac has a batch dim\"\"\"\n        assert ac[\"camera\"].shape[-1] == 1\n        assert ac[\"buttons\"].shape[-1] == 1\n        new_button_ac = self.BUTTON_IDX_TO_FACTORED[np.squeeze(ac[\"buttons\"], -1)]\n        camera_off = self.BUTTON_IDX_TO_CAMERA_META_OFF[np.squeeze(ac[\"buttons\"], -1)]\n        new_camera_ac = self.CAMERA_IDX_TO_FACTORED[np.squeeze(ac[\"camera\"], -1)]\n        new_camera_ac[camera_off] = self.camera_null_bin",
+        "type": "code",
+        "location": "/lib/action_mapping.py:201-223"
+    },
+    "161": {
+        "file_id": 6,
+        "content": "This code is converting an action in the new space (ac) to the factored action space. It first checks if the \"inventory\" key is present, and if so, uses a specific key format. For other keys, it uses a different key format. Then it appends the camera indices to a list. The function returns a dictionary with buttons and cameras in the new action space. If the input action has a batch dimension, the code asserts that the shape of both \"camera\" and \"buttons\" are 1, squeezes them, maps the button indices to factored action space, calculates camera offsets, maps the camera indices to factored action space, and replaces the null camera values with \"camera_null_bin\".",
+        "type": "comment"
+    },
+    "162": {
+        "file_id": 6,
+        "content": "        return dict(buttons=new_button_ac, camera=new_camera_ac)\n    def get_action_space_update(self):\n        return {\n            \"camera\": TensorType(shape=(1,), eltype=Discrete(len(self.camera_combinations))),\n            \"buttons\": TensorType(shape=(1,), eltype=Discrete(len(self.BUTTONS_COMBINATIONS))),\n        }\n    def get_zero_action(self):\n        return self._null_action",
+        "type": "code",
+        "location": "/lib/action_mapping.py:225-234"
+    },
+    "163": {
+        "file_id": 6,
+        "content": "This code defines a class with three methods. The first method returns a dictionary containing the \"buttons\" and \"camera\" actions. The second method specifies the action space update, defining the shape and type for both \"camera\" and \"buttons\". The third method returns a null action.",
+        "type": "comment"
+    },
+    "164": {
+        "file_id": 7,
+        "content": "/lib/actions.py",
+        "type": "filepath"
+    },
+    "165": {
+        "file_id": 7,
+        "content": "The code includes Minecraft action classes with quantization schemes and an ActionTransformer, along with three functions for mapping item IDs to names and converting environment data to policy format.",
+        "type": "summary"
+    },
+    "166": {
+        "file_id": 7,
+        "content": "import attr\nimport minerl.herobraine.hero.mc as mc\nimport numpy as np\nfrom lib.minecraft_util import store_args\nclass Buttons:\n    ATTACK = \"attack\"\n    BACK = \"back\"\n    FORWARD = \"forward\"\n    JUMP = \"jump\"\n    LEFT = \"left\"\n    RIGHT = \"right\"\n    SNEAK = \"sneak\"\n    SPRINT = \"sprint\"\n    USE = \"use\"\n    DROP = \"drop\"\n    INVENTORY = \"inventory\"\n    ALL = [\n        ATTACK,\n        BACK,\n        FORWARD,\n        JUMP,\n        LEFT,\n        RIGHT,\n        SNEAK,\n        SPRINT,\n        USE,\n        DROP,\n        INVENTORY,\n    ] + [f\"hotbar.{i}\" for i in range(1, 10)]\nclass SyntheticButtons:\n    # Composite / scripted actions\n    CHANNEL_ATTACK = \"channel-attack\"\n    ALL = [CHANNEL_ATTACK]\nclass QuantizationScheme:\n    LINEAR = \"linear\"\n    MU_LAW = \"mu_law\"\n@attr.s(auto_attribs=True)\nclass CameraQuantizer:\n    \"\"\"\n    A camera quantizer that discretizes and undiscretizes a continuous camera input with y (pitch) and x (yaw) components.\n    Parameters:\n    - camera_binsize: The size of the bins used for quantization. In case of mu-law quantization, it corresponds to the average binsize.",
+        "type": "code",
+        "location": "/lib/actions.py:1-54"
+    },
+    "167": {
+        "file_id": 7,
+        "content": "This code defines classes for various action types and a camera quantizer in the context of Minecraft gameplay. The Buttons class represents different action buttons like attack, jump, inventory, etc. SyntheticButtons includes composite/scripted actions. QuantizationScheme has options for linear or mu-law quantization. CameraQuantizer is responsible for discretizing and undiscretizing continuous camera input (pitch and yaw).",
+        "type": "comment"
+    },
+    "168": {
+        "file_id": 7,
+        "content": "    - camera_maxval: The maximum value of the camera action.\n    - quantization_scheme: The quantization scheme to use. Currently, two quantization schemes are supported:\n    - Linear quantization (default): Camera actions are split uniformly into discrete bins\n    - Mu-law quantization: Transforms the camera action using mu-law encoding (https://en.wikipedia.org/wiki/%CE%9C-law_algorithm)\n    followed by the same quantization scheme used by the linear scheme.\n    - mu: Mu is the parameter that defines the curvature of the mu-law encoding. Higher values of\n    mu will result in a sharper transition near zero. Below are some reference values listed\n    for choosing mu given a constant maxval and a desired max_precision value.\n    maxval = 10 | max_precision = 0.5  | μ ≈ 2.93826\n    maxval = 10 | max_precision = 0.4  | μ ≈ 4.80939\n    maxval = 10 | max_precision = 0.25 | μ ≈ 11.4887\n    maxval = 20 | max_precision = 0.5  | μ ≈ 2.7\n    maxval = 20 | max_precision = 0.4  | μ ≈ 4.39768\n    maxval = 20 | max_precision = 0.25 | μ ≈ 10.3194",
+        "type": "code",
+        "location": "/lib/actions.py:55-68"
+    },
+    "169": {
+        "file_id": 7,
+        "content": "This code defines two quantization schemes for camera actions: linear and mu-law. It also provides reference values for the mu parameter based on maxval and desired max_precision for mu-law encoding.",
+        "type": "comment"
+    },
+    "170": {
+        "file_id": 7,
+        "content": "    maxval = 40 | max_precision = 0.5  | μ ≈ 2.60780\n    maxval = 40 | max_precision = 0.4  | μ ≈ 4.21554\n    maxval = 40 | max_precision = 0.25 | μ ≈ 9.81152\n    \"\"\"\n    camera_maxval: int\n    camera_binsize: int\n    quantization_scheme: str = attr.ib(\n        default=QuantizationScheme.LINEAR,\n        validator=attr.validators.in_([QuantizationScheme.LINEAR, QuantizationScheme.MU_LAW]),\n    )\n    mu: float = attr.ib(default=5)\n    def discretize(self, xy):\n        xy = np.clip(xy, -self.camera_maxval, self.camera_maxval)\n        if self.quantization_scheme == QuantizationScheme.MU_LAW:\n            xy = xy / self.camera_maxval\n            v_encode = np.sign(xy) * (np.log(1.0 + self.mu * np.abs(xy)) / np.log(1.0 + self.mu))\n            v_encode *= self.camera_maxval\n            xy = v_encode\n        # Quantize using linear scheme\n        return np.round((xy + self.camera_maxval) / self.camera_binsize).astype(np.int64)\n    def undiscretize(self, xy):\n        xy = xy * self.camera_binsize - self.camera_maxval",
+        "type": "code",
+        "location": "/lib/actions.py:69-95"
+    },
+    "171": {
+        "file_id": 7,
+        "content": "This code defines a class with properties for camera max value, bin size, quantization scheme (linear or Mu-Law), and mu value. The discretize method takes in xy coordinates, clips them within the camera range, applies the specified quantization scheme to discretize the values, and returns the rounded values as integers. The undiscretize method takes in discretized values and converts them back to their original continuous representation by multiplying with the bin size and subtracting the camera max value.",
+        "type": "comment"
+    },
+    "172": {
+        "file_id": 7,
+        "content": "        if self.quantization_scheme == QuantizationScheme.MU_LAW:\n            xy = xy / self.camera_maxval\n            v_decode = np.sign(xy) * (1.0 / self.mu) * ((1.0 + self.mu) ** np.abs(xy) - 1.0)\n            v_decode *= self.camera_maxval\n            xy = v_decode\n        return xy\nclass ActionTransformer:\n    \"\"\"Transforms actions between internal array and minerl env format.\"\"\"\n    @store_args\n    def __init__(\n        self,\n        camera_maxval=10,\n        camera_binsize=2,\n        camera_quantization_scheme=\"linear\",\n        camera_mu=5,\n    ):\n        self.quantizer = CameraQuantizer(\n            camera_maxval=camera_maxval,\n            camera_binsize=camera_binsize,\n            quantization_scheme=camera_quantization_scheme,\n            mu=camera_mu,\n        )\n    def camera_zero_bin(self):\n        return self.camera_maxval // self.camera_binsize\n    def discretize_camera(self, xy):\n        return self.quantizer.discretize(xy)\n    def undiscretize_camera(self, pq):\n        return self.quantizer.undiscretize(pq)",
+        "type": "code",
+        "location": "/lib/actions.py:97-130"
+    },
+    "173": {
+        "file_id": 7,
+        "content": "This code defines a class called `ActionTransformer` that transforms actions between internal arrays and the MinerL environment format. It includes methods for discretizing and undiscretizing camera data, as well as calculating a zero bin value based on camera binsize. If the quantization scheme is set to \"mu_law\", it applies the mu-law quantization method to the input data.",
+        "type": "comment"
+    },
+    "174": {
+        "file_id": 7,
+        "content": "    def item_embed_id_to_name(self, item_id):\n        return mc.MINERL_ITEM_MAP[item_id]\n    def dict_to_numpy(self, acs):\n        \"\"\"\n        Env format to policy output format.\n        \"\"\"\n        act = {\n            \"buttons\": np.stack([acs.get(k, 0) for k in Buttons.ALL], axis=-1),\n            \"camera\": self.discretize_camera(acs[\"camera\"]),\n        }\n        if not self.human_spaces:\n            act.update(\n                {\n                    \"synthetic_buttons\": np.stack([acs[k] for k in SyntheticButtons.ALL], axis=-1),\n                    \"place\": self.item_embed_name_to_id(acs[\"place\"]),\n                    \"equip\": self.item_embed_name_to_id(acs[\"equip\"]),\n                    \"craft\": self.item_embed_name_to_id(acs[\"craft\"]),\n                }\n            )\n        return act\n    def numpy_to_dict(self, acs):\n        \"\"\"\n        Numpy policy output to env-compatible format.\n        \"\"\"\n        assert acs[\"buttons\"].shape[-1] == len(\n            Buttons.ALL\n        ), f\"Mismatched actions: {acs}; expected {len(Buttons.ALL)}:\\n(  {Buttons.ALL})\"",
+        "type": "code",
+        "location": "/lib/actions.py:132-160"
+    },
+    "175": {
+        "file_id": 7,
+        "content": "The code contains three functions:\n\n1. item_embed_id_to_name(): This function converts an item ID to its name using the mc.MINERL_ITEM_MAP dictionary.\n2. dict_to_numpy(): This function transforms environment format data to policy output format, creating a dictionary \"act\" containing buttons and camera values in numpy array format. If human-spaces is False, it adds synthetic_buttons, place, equip, and craft values as well.\n3. numpy_to_dict(): This function converts numpy policy output to an environment-compatible format, ensuring the buttons shape matches the expected size.",
+        "type": "comment"
+    },
+    "176": {
+        "file_id": 7,
+        "content": "        out = {name: acs[\"buttons\"][..., i] for (i, name) in enumerate(Buttons.ALL)}\n        out[\"camera\"] = self.undiscretize_camera(acs[\"camera\"])\n        return out\n    def policy2env(self, acs):\n        acs = self.numpy_to_dict(acs)\n        return acs\n    def env2policy(self, acs):\n        nbatch = acs[\"camera\"].shape[0]\n        dummy = np.zeros((nbatch,))\n        out = {\n            \"camera\": self.discretize_camera(acs[\"camera\"]),\n            \"buttons\": np.stack([acs.get(k, dummy) for k in Buttons.ALL], axis=-1),\n        }\n        return out",
+        "type": "code",
+        "location": "/lib/actions.py:161-178"
+    },
+    "177": {
+        "file_id": 7,
+        "content": "The code defines three methods: \"undiscretize_camera\", \"numpy_to_dict\", and \"discretize_camera\". It converts a camera array to its undiscretized form, converts numpy arrays to dictionaries, and converts an undiscretized camera array back into discretized form, respectively.",
+        "type": "comment"
+    },
+    "178": {
+        "file_id": 8,
+        "content": "/lib/impala_cnn.py",
+        "type": "filepath"
+    },
+    "179": {
+        "file_id": 8,
+        "content": "The ImpalaCNN architecture is created with optional group normalization, allowing for customizable input shape, downsample stacks, output hidden size, and residual blocks per stack. It inherits from a base class and utilizes 2D convolutional layers for multi-stack classification models.",
+        "type": "summary"
+    },
+    "180": {
+        "file_id": 8,
+        "content": "import math\nfrom copy import deepcopy\nfrom typing import Dict, List, Optional\nfrom torch import nn\nfrom torch.nn import functional as F\nfrom lib import misc\nfrom lib import torch_util as tu\nfrom lib.util import FanInInitReLULayer\nclass CnnBasicBlock(nn.Module):\n    \"\"\"\n    Residual basic block, as in ImpalaCNN. Preserves channel number and shape\n    :param inchan: number of input channels\n    :param init_scale: weight init scale multiplier\n    \"\"\"\n    def __init__(\n        self,\n        inchan: int,\n        init_scale: float = 1,\n        log_scope=\"\",\n        init_norm_kwargs: Dict = {},\n        **kwargs,\n    ):\n        super().__init__()\n        self.inchan = inchan\n        s = math.sqrt(init_scale)\n        self.conv0 = FanInInitReLULayer(\n            self.inchan,\n            self.inchan,\n            kernel_size=3,\n            padding=1,\n            init_scale=s,\n            log_scope=f\"{log_scope}/conv0\",\n            **init_norm_kwargs,\n        )\n        self.conv1 = FanInInitReLULayer(\n            self.inchan,\n            self.inchan,",
+        "type": "code",
+        "location": "/lib/impala_cnn.py:1-42"
+    },
+    "181": {
+        "file_id": 8,
+        "content": "This code defines a CnnBasicBlock class for ImpalaCNN, which is a residual basic block that preserves the number of input channels and the shape. It uses FanInInitReLULayer for the convolutional layers and allows adjusting weight initialization scale, log scope, and initialization normalization parameters.",
+        "type": "comment"
+    },
+    "182": {
+        "file_id": 8,
+        "content": "            kernel_size=3,\n            padding=1,\n            init_scale=s,\n            log_scope=f\"{log_scope}/conv1\",\n            **init_norm_kwargs,\n        )\n    def forward(self, x):\n        x = x + self.conv1(self.conv0(x))\n        return x\nclass CnnDownStack(nn.Module):\n    \"\"\"\n    Downsampling stack from Impala CNN.\n    :param inchan: number of input channels\n    :param nblock: number of residual blocks after downsampling\n    :param outchan: number of output channels\n    :param init_scale: weight init scale multiplier\n    :param pool: if true, downsample with max pool\n    :param post_pool_groups: if not None, normalize with group norm with this many groups\n    :param kwargs: remaining kwargs are passed into the blocks and layers\n    \"\"\"\n    name = \"Impala_CnnDownStack\"\n    def __init__(\n        self,\n        inchan: int,\n        nblock: int,\n        outchan: int,\n        init_scale: float = 1,\n        pool: bool = True,\n        post_pool_groups: Optional[int] = None,\n        log_scope: str = \"\",\n        init_norm_kwargs: Dict = {},",
+        "type": "code",
+        "location": "/lib/impala_cnn.py:43-78"
+    },
+    "183": {
+        "file_id": 8,
+        "content": "This code defines two classes: `ImpalaCnnConv1d` and `CnnDownStack`. The `ImpalaCnnConv1d` class represents a 1-dimensional convolutional layer with specific parameters, while the `CnnDownStack` class is a stack of downsampling blocks using the `ImpalaCnnConv1d` as the base. These classes are used for image classification tasks following the Impala CNN architecture.",
+        "type": "comment"
+    },
+    "184": {
+        "file_id": 8,
+        "content": "        first_conv_norm=False,\n        **kwargs,\n    ):\n        super().__init__()\n        self.inchan = inchan\n        self.outchan = outchan\n        self.pool = pool\n        first_conv_init_kwargs = deepcopy(init_norm_kwargs)\n        if not first_conv_norm:\n            first_conv_init_kwargs[\"group_norm_groups\"] = None\n            first_conv_init_kwargs[\"batch_norm\"] = False\n        self.firstconv = FanInInitReLULayer(\n            inchan,\n            outchan,\n            kernel_size=3,\n            padding=1,\n            log_scope=f\"{log_scope}/firstconv\",\n            **first_conv_init_kwargs,\n        )\n        self.post_pool_groups = post_pool_groups\n        if post_pool_groups is not None:\n            self.n = nn.GroupNorm(post_pool_groups, outchan)\n        self.blocks = nn.ModuleList(\n            [\n                CnnBasicBlock(\n                    outchan,\n                    init_scale=init_scale / math.sqrt(nblock),\n                    log_scope=f\"{log_scope}/block{i}\",\n                    init_norm_kwargs=init_norm_kwargs,",
+        "type": "code",
+        "location": "/lib/impala_cnn.py:79-107"
+    },
+    "185": {
+        "file_id": 8,
+        "content": "This code initializes a CNN architecture with optional group normalization. It takes parameters such as input and output channels, pooling size, and whether to use group normalization for the first convolution layer or not. The code also includes a list of blocks, where each block is an instance of CnnBasicBlock.",
+        "type": "comment"
+    },
+    "186": {
+        "file_id": 8,
+        "content": "                    **kwargs,\n                )\n                for i in range(nblock)\n            ]\n        )\n    def forward(self, x):\n        x = self.firstconv(x)\n        if self.pool:\n            x = F.max_pool2d(x, kernel_size=3, stride=2, padding=1)\n            if self.post_pool_groups is not None:\n                x = self.n(x)\n        x = tu.sequential(self.blocks, x, diag_name=self.name)\n        return x\n    def output_shape(self, inshape):\n        c, h, w = inshape\n        assert c == self.inchan\n        if self.pool:\n            return (self.outchan, (h + 1) // 2, (w + 1) // 2)\n        else:\n            return (self.outchan, h, w)\nclass ImpalaCNN(nn.Module):\n    \"\"\"\n    :param inshape: input image shape (height, width, channels)\n    :param chans: number of residual downsample stacks. Each element is the number of\n        filters per convolution in the stack\n    :param outsize: output hidden size\n    :param nblock: number of residual blocks per stack. Each block has 2 convs and a residual\n    :param init_norm_kwargs: arguments to be passed to convolutional layers. Options can be found",
+        "type": "code",
+        "location": "/lib/impala_cnn.py:108-139"
+    },
+    "187": {
+        "file_id": 8,
+        "content": "This code defines a class for an ImpalaCNN model, which is a residual convolutional neural network. The constructor takes input image shape, number of residual downsample stacks, output hidden size, and number of residual blocks per stack as parameters. The forward method performs the forward pass through the network, and the output_shape method returns the expected output shape given the input shape.",
+        "type": "comment"
+    },
+    "188": {
+        "file_id": 8,
+        "content": "        in ypt.model.util:FanInInitReLULayer\n    :param dense_init_norm_kwargs: arguments to be passed to convolutional layers. Options can be found\n        in ypt.model.util:FanInInitReLULayer\n    :param kwargs: remaining kwargs are passed into the CnnDownStacks\n    \"\"\"\n    name = \"ImpalaCNN\"\n    def __init__(\n        self,\n        inshape: List[int],\n        chans: List[int],\n        outsize: int,\n        nblock: int,\n        init_norm_kwargs: Dict = {},\n        dense_init_norm_kwargs: Dict = {},\n        first_conv_norm=False,\n        **kwargs,\n    ):\n        super().__init__()\n        h, w, c = inshape\n        curshape = (c, h, w)\n        self.stacks = nn.ModuleList()\n        for i, outchan in enumerate(chans):\n            stack = CnnDownStack(\n                curshape[0],\n                nblock=nblock,\n                outchan=outchan,\n                init_scale=math.sqrt(len(chans)),\n                log_scope=f\"downstack{i}\",\n                init_norm_kwargs=init_norm_kwargs,\n                first_conv_norm=first_conv_norm if i == 0 else True,",
+        "type": "code",
+        "location": "/lib/impala_cnn.py:140-171"
+    },
+    "189": {
+        "file_id": 8,
+        "content": "This code defines a class called \"ImpalaCNN\" which inherits from the base class. It takes in parameters such as input shape, number of channels, output size, number of blocks, initialization arguments for normalization layers, and additional keyword arguments. The class initializes a list of CNN downstack modules and sets their configurations based on the input parameters.",
+        "type": "comment"
+    },
+    "190": {
+        "file_id": 8,
+        "content": "                **kwargs,\n            )\n            self.stacks.append(stack)\n            curshape = stack.output_shape(curshape)\n        self.dense = FanInInitReLULayer(\n            misc.intprod(curshape),\n            outsize,\n            layer_type=\"linear\",\n            log_scope=\"imapala_final_dense\",\n            init_scale=1.4,\n            **dense_init_norm_kwargs,\n        )\n        self.outsize = outsize\n    def forward(self, x):\n        b, t = x.shape[:-3]\n        x = x.reshape(b * t, *x.shape[-3:])\n        x = misc.transpose(x, \"bhwc\", \"bchw\")\n        x = tu.sequential(self.stacks, x, diag_name=self.name)\n        x = x.reshape(b, t, *x.shape[1:])\n        x = tu.flatten_image(x)\n        x = self.dense(x)\n        return x",
+        "type": "code",
+        "location": "/lib/impala_cnn.py:172-195"
+    },
+    "191": {
+        "file_id": 8,
+        "content": "This code initializes a CNN model with multiple stacked 2D convolutional layers. The output of each stack is used as input to the next stack until the final dense layer for classification.",
+        "type": "comment"
+    },
+    "192": {
+        "file_id": 9,
+        "content": "/lib/masked_attention.py",
+        "type": "filepath"
+    },
+    "193": {
+        "file_id": 9,
+        "content": "The function develops a Masked Attention mechanism for time series data, incorporating parameters and considerations such as input size and mask type, and initializes an object for the masked attention based on these parameters. It defines a Masked Attention class with methods for state initialization, forward propagation, and handling causal masking, returning output and state information.",
+        "type": "summary"
+    },
+    "194": {
+        "file_id": 9,
+        "content": "import functools\nimport torch as th\nfrom torch import nn\nimport lib.xf as xf\nfrom lib.minecraft_util import store_args\nfrom lib.tree_util import tree_map\n@functools.lru_cache()\ndef get_band_diagonal_mask(t: int, T: int, maxlen: int, batchsize: int, device: th.device) -> th.Tensor:\n    \"\"\"Returns a band diagonal mask which is causal (upper triangle is masked)\n    and such that any frame can only view up to maxlen total past frames\n    including the current frame.\n    Example Masks: Here 0 means that frame is masked and we mask it by adding a huge number to the attention logits (see orc.xf)\n        t = 3, T = 3, maxlen = 3\n          T\n        t 1 0 0 |  mask out T > t\n          1 1 0 |\n          1 1 1 |\n        t = 3, T = 6, maxlen = 3\n        t 0 1 1 1 0 0 |  mask out T > t\n          0 0 1 1 1 0 |\n          0 0 0 1 1 1 |\n    Args:\n        t: number of rows (presumably number of frames recieving gradient)\n        T: number of cols (presumably t + past context that isn't being gradient updated)\n        maxlen: maximum number of frames (including current frame) any frame can attend to",
+        "type": "code",
+        "location": "/lib/masked_attention.py:1-31"
+    },
+    "195": {
+        "file_id": 9,
+        "content": "This function returns a band diagonal mask for time series data, ensuring the attention is causal and limited to a specific maximum length. The mask is created based on the number of rows (frames receiving gradient) and columns (total frames including past context).",
+        "type": "comment"
+    },
+    "196": {
+        "file_id": 9,
+        "content": "        batchsize: number of masks to return\n        device: torch device to place mask on\n    Returns:\n        Boolean mask of shape (batchsize, t, T)\n    \"\"\"\n    m = th.ones(t, T, dtype=bool)\n    m.tril_(T - t)  # Mask out upper triangle\n    if maxlen is not None and maxlen < T:  # Mask out lower triangle\n        m.triu_(T - t - maxlen + 1)\n    m_btT = m[None].repeat_interleave(batchsize, dim=0)\n    m_btT = m_btT.to(device=device)\n    return m_btT\ndef get_mask(first_b11: th.Tensor, state_mask: th.Tensor, t: int, T: int, maxlen: int, heads: int, device) -> th.Tensor:\n    \"\"\"Returns a band diagonal mask that respects masking past states (columns 0:T-t inclusive)\n        if first_b11 is True. See get_band_diagonal_mask for how the base mask is computed.\n        This function takes that mask and first zeros out any past context if first_b11 is True.\n        Say our context is in chunks of length t (so here T = 4t). We see that in the second batch we recieved first=True\n        context     t t t t\n        first       F T F F",
+        "type": "code",
+        "location": "/lib/masked_attention.py:32-54"
+    },
+    "197": {
+        "file_id": 9,
+        "content": "This function takes the masked_attention function from Video-Pre-Training/lib/masked_attention.py and generates a Boolean mask of shape (batchsize, t, T) based on the given parameters. The mask will have the upper triangle and lower triangle (if maxlen is not None) masked out. The get_mask function takes additional parameters and returns a band diagonal mask that respects the masking past states if first_b11 is True, by zeros any past context.",
+        "type": "comment"
+    },
+    "198": {
+        "file_id": 9,
+        "content": "        Now, given this the mask should mask out anything prior to T < t; however since we don't have access to the past first_b11's\n        we need to keep a state of the mask at those past timesteps. This is what state_mask is.\n        In particular state_mask is a [b, t, T - t] mask matrix that contains the mask for the past T - t frames.\n    Args: (See get_band_diagonal_mask for remaining args)\n        first_b11: boolean tensor with shape [batchsize, 1, 1] indicating if the first timestep for each batch element had first=True\n        state_mask: mask tensor of shape [b, t, T - t]\n        t: number of mask rows (presumably number of frames for which we take gradient)\n        T: number of mask columns (t + the number of past frames we keep in context)\n        maxlen: actual context length\n        heads: number of attention heads\n        device: torch device\n    Returns:\n        m_btT: Boolean mask of shape (batchsize * heads, t, T)\n        state_mask: updated state_mask\n    \"\"\"\n    b = first_b11.shape[0]",
+        "type": "code",
+        "location": "/lib/masked_attention.py:55-73"
+    },
+    "199": {
+        "file_id": 9,
+        "content": "This function receives various inputs including `first_b11`, `state_mask`, `t`, `T`, `maxlen`, `heads`, and `device`. It will return a Boolean mask of shape (batchsize * heads, t, T) and an updated state_mask. The purpose of this function is to update the state_mask based on the given inputs for the masked attention mechanism.",
+        "type": "comment"
+    }
+}

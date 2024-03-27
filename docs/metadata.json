@@ -1,0 +1,125 @@
+{
+    "url": {
+        "full": "https://github.com/openai/Video-Pre-Training",
+        "partial": "openai/Video-Pre-Training"
+    },
+    "file_mapping": {
+        "0": {
+            "filepath": "/README.md",
+            "entry_id": 0,
+            "language_id": "plain-text"
+        },
+        "1": {
+            "filepath": "/agent.py",
+            "entry_id": 54,
+            "language_id": "python"
+        },
+        "2": {
+            "filepath": "/behavioural_cloning.py",
+            "entry_id": 72,
+            "language_id": "python"
+        },
+        "3": {
+            "filepath": "/data_loader.py",
+            "entry_id": 86,
+            "language_id": "python"
+        },
+        "4": {
+            "filepath": "/inverse_dynamics_model.py",
+            "entry_id": 106,
+            "language_id": "python"
+        },
+        "5": {
+            "filepath": "/lib/action_head.py",
+            "entry_id": 116,
+            "language_id": "python"
+        },
+        "6": {
+            "filepath": "/lib/action_mapping.py",
+            "entry_id": 140,
+            "language_id": "python"
+        },
+        "7": {
+            "filepath": "/lib/actions.py",
+            "entry_id": 164,
+            "language_id": "python"
+        },
+        "8": {
+            "filepath": "/lib/impala_cnn.py",
+            "entry_id": 178,
+            "language_id": "python"
+        },
+        "9": {
+            "filepath": "/lib/masked_attention.py",
+            "entry_id": 192,
+            "language_id": "python"
+        },
+        "10": {
+            "filepath": "/lib/minecraft_util.py",
+            "entry_id": 210,
+            "language_id": "python"
+        },
+        "11": {
+            "filepath": "/lib/misc.py",
+            "entry_id": 220,
+            "language_id": "python"
+        },
+        "12": {
+            "filepath": "/lib/mlp.py",
+            "entry_id": 238,
+            "language_id": "python"
+        },
+        "13": {
+            "filepath": "/lib/normalize_ewma.py",
+            "entry_id": 242,
+            "language_id": "python"
+        },
+        "14": {
+            "filepath": "/lib/policy.py",
+            "entry_id": 250,
+            "language_id": "python"
+        },
+        "15": {
+            "filepath": "/lib/scaled_mse_head.py",
+            "entry_id": 284,
+            "language_id": "python"
+        },
+        "16": {
+            "filepath": "/lib/torch_util.py",
+            "entry_id": 290,
+            "language_id": "python"
+        },
+        "17": {
+            "filepath": "/lib/tree_util.py",
+            "entry_id": 304,
+            "language_id": "python"
+        },
+        "18": {
+            "filepath": "/lib/util.py",
+            "entry_id": 324,
+            "language_id": "python"
+        },
+        "19": {
+            "filepath": "/lib/xf.py",
+            "entry_id": 344,
+            "language_id": "python"
+        },
+        "20": {
+            "filepath": "/requirements.txt",
+            "entry_id": 376,
+            "language_id": "plain-text"
+        },
+        "21": {
+            "filepath": "/run_agent.py",
+            "entry_id": 380,
+            "language_id": "python"
+        },
+        "22": {
+            "filepath": "/run_inverse_dynamics_model.py",
+            "entry_id": 386,
+            "language_id": "python"
+        }
+    },
+    "project_name": "Video-Pre-Training",
+    "split_count": 5
+}

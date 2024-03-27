@@ -1,0 +1,10 @@
+{
+    "summary": "MLP class defines a neural network with specified input, hidden, and output layers. It uses normed linear layers and applies the specified activation function to hidden layers.",
+    "details": [
+        {
+            "comment": "MLP class defines a neural network with specified input, hidden, and output layers. It uses normed linear layers and applies the specified activation function to hidden layers.",
+            "location": "\"/media/root/Toshiba XG3/works/Video-Pre-Training/docs/src/lib/mlp.py\":0-30",
+            "content": "import torch as th\nfrom torch import nn\nfrom lib import misc\nfrom lib import torch_util as tu\nclass MLP(nn.Module):\n    def __init__(self, insize, nhidlayer, outsize, hidsize, hidactiv, dtype=th.float32):\n        super().__init__()\n        self.insize = insize\n        self.nhidlayer = nhidlayer\n        self.outsize = outsize\n        in_sizes = [insize] + [hidsize] * nhidlayer\n        out_sizes = [hidsize] * nhidlayer + [outsize]\n        self.layers = nn.ModuleList(\n            [tu.NormedLinear(insize, outsize, dtype=dtype) for (insize, outsize) in misc.safezip(in_sizes, out_sizes)]\n        )\n        self.hidactiv = hidactiv\n    def forward(self, x):\n        *hidlayers, finallayer = self.layers\n        for layer in hidlayers:\n            x = layer(x)\n            x = self.hidactiv(x)\n        x = finallayer(x)\n        return x\n    @property\n    def output_shape(self):\n        return (self.outsize,)"
+        }
+    ]
+}
