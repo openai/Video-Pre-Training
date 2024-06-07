@@ -91,7 +91,7 @@ Setup:
 
 To run the model with above files placed in the root directory of this code:
 ```
-python run_inverse_dynamics_model.py -weights 4x_idm.weights --model 4x_idm.model --video-path cheeky-cornflower-setter-02e496ce4abb-20220421-092639.mp4 --jsonl-path cheeky-cornflower-setter-02e496ce4abb-20220421-092639.jsonl
+python run_inverse_dynamics_model.py --weights 4x_idm.weights --model 4x_idm.model --video-path cheeky-cornflower-setter-02e496ce4abb-20220421-092639.mp4 --jsonl-path cheeky-cornflower-setter-02e496ce4abb-20220421-092639.jsonl
 ```
 
 A window should pop up which shows the video frame-by-frame, showing the predicted and true (recorded) actions side-by-side on the left.
