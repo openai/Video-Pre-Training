@@ -1,0 +1,13 @@
+{
+    "400": {
+        "file_id": 22,
+        "content": "    parser.add_argument(\"--video-path\", type=str, required=True, help=\"Path to a .mp4 file (Minecraft recording).\")\n    parser.add_argument(\"--jsonl-path\", type=str, required=True, help=\"Path to a .jsonl file (Minecraft recording).\")\n    parser.add_argument(\"--n-frames\", type=int, default=128, help=\"Number of frames to process at a time.\")\n    parser.add_argument(\"--n-batches\", type=int, default=10, help=\"Number of batches (n-frames) to process for visualization.\")\n    args = parser.parse_args()\n    main(args.model, args.weights, args.video_path, args.jsonl_path, args.n_batches, args.n_frames)",
+        "type": "code",
+        "location": "/run_inverse_dynamics_model.py:198-205"
+    },
+    "401": {
+        "file_id": 22,
+        "content": "This code sets up command line arguments for video path, JSONL file path, number of frames to process at a time, and the number of batches to process for visualization. It then parses these arguments into \"args\" and calls the main function with these arguments.",
+        "type": "comment"
+    }
+}
