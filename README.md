@@ -481,6 +481,8 @@ We also collected a dataset of demonstrations for the [MineRL BASALT 2022](https
     ```
     </details>
 
+# Disclaimers
+Minecraft is the intellectual property of Microsoft, not OpenAI. OpenAI is not purporting to license any intellectual property rights with respect to Minecraft.
 
 
 # Contribution
