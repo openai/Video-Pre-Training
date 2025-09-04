@@ -1,0 +1,546 @@
+{
+    "300": {
+        "file_id": 16,
+        "content": "        elif x == \"uint8\":\n            return th.uint8\n        elif x == \"int8\":\n            return th.int8\n        elif x == \"int16\" or x == \"short\":\n            return th.int16\n        elif x == \"int32\" or x == \"int\":\n            return th.int32\n        elif x == \"int64\" or x == \"long\":\n            return th.int64\n        elif x == \"bool\":\n            return th.bool\n        else:\n            raise ValueError(f\"cannot parse {x} as a dtype\")\n    else:\n        raise TypeError(f\"cannot parse {type(x)} as dtype\")\ndef index(x, i):\n    \"\"\"\n    Batched, broadcasting index of x along dimension i.ndim.\n    For example, if x has shape (1, 2, 3, 4, 5) and i has shape (1, 1, 3)\n    then the result has shape (1, 2, 3, 5) and each value in i must be between 0 and 3.\n    \"\"\"\n    assert x.ndim >= i.ndim + 1\n    gather_dim = i.ndim\n    while i.ndim < x.ndim:\n        i = i.unsqueeze(-1)\n    expand_shape = list(x.shape)\n    expand_shape[gather_dim] = 1\n    i = i.expand(*expand_shape)\n    xi = th.gather(x, gather_dim, i)\n    assert xi.shape[gather_dim] == 1",
+        "type": "code",
+        "location": "/lib/torch_util.py:166-199"
+    },
+    "301": {
+        "file_id": 16,
+        "content": "This function parses a dtype string and returns the corresponding PyTorch tensor data type. It also provides an index function for batched, broadcasting index of x along dimension i.ndim. The index function ensures that the input shape is compatible with the tensor shape and expands or gathers the tensor accordingly.",
+        "type": "comment"
+    },
+    "302": {
+        "file_id": 16,
+        "content": "    return xi.squeeze(gather_dim)",
+        "type": "code",
+        "location": "/lib/torch_util.py:200-200"
+    },
+    "303": {
+        "file_id": 16,
+        "content": "This function is squeezing the dimensions of the tensor 'xi' based on the value in 'gather_dim'.",
+        "type": "comment"
+    },
+    "304": {
+        "file_id": 17,
+        "content": "/lib/tree_util.py",
+        "type": "filepath"
+    },
+    "305": {
+        "file_id": 17,
+        "content": "The code includes utility functions for manipulating data structures, defines partial applications and safe mapping functions for multiple lists, and registers different data types and their conversion functions for serialization using the PyTree API.",
+        "type": "summary"
+    },
+    "306": {
+        "file_id": 17,
+        "content": "# Copyright 2018 Google LLC\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     https://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n# Copied this from jax, made it self-contained\n# Currently just used for improved_checkpoint\nimport collections\nimport functools\nimport itertools as it\nfrom collections.abc import Collection\nfrom typing import Dict, List, Optional\ndef unzip2(xys):\n    xs = []\n    ys = []\n    for x, y in xys:\n        xs.append(x)\n        ys.append(y)\n    return tuple(xs), tuple(ys)\ndef partial(fun, *args, **kwargs):\n    wrapped = functools.partial(fun, *args, **kwargs)",
+        "type": "code",
+        "location": "/lib/tree_util.py:1-35"
+    },
+    "307": {
+        "file_id": 17,
+        "content": "This code block contains utility functions for manipulating dictionaries, tuples and lists. It defines two functions: unzip2 and partial. Unzip2 takes a list of pairs (x, y) and returns the corresponding x and y as separate tuples. Partial is a wrapper function that creates a partial application of another function with specified arguments or keyword arguments.",
+        "type": "comment"
+    },
+    "308": {
+        "file_id": 17,
+        "content": "    functools.update_wrapper(wrapped, fun)\n    wrapped._bound_args = args  # pylint: disable=protected-access\n    return wrapped\ndef safe_zip(*args: Collection) -> List[tuple]:\n    n = len(args[0])\n    for arg in args[1:]:\n        assert len(arg) == n, \"length mismatch: {}\".format(list(map(len, args)))\n    return list(zip(*args))\ndef safe_map(f, *args):\n    args = list(map(list, args))\n    n = len(args[0])\n    for arg in args[1:]:\n        assert len(arg) == n, \"length mismatch: {}\".format(list(map(len, args)))\n    return list(map(f, *args))\ndef tree_map(f, tree, treat_as_leaves: Optional[List] = None):\n    \"\"\"Map a function over a pytree to produce a new pytree.\n    Args:\n      f: function to be applied at each leaf.\n      tree: a pytree to be mapped over.\n    Returns:\n      A new pytree with the same structure as `tree` but with the value at each\n      leaf given by `f(x)` where `x` is the value at the corresponding leaf in\n      `tree`.\n    \"\"\"\n    if treat_as_leaves is None:\n        treat_as_leaves = []\n    node_type = node_types.get(type(tree))",
+        "type": "code",
+        "location": "/lib/tree_util.py:36-70"
+    },
+    "309": {
+        "file_id": 17,
+        "content": "This code contains three functions:\n1. `safe_zip()` - creates a list of tuples from multiple lists, asserting that all lists have the same length.\n2. `safe_map()` - applies a function to each element in a list (or multiple lists), asserting that all lists have the same length.\n3. `tree_map()` - maps a function over a pytree and returns a new pytree with the same structure, but with values at leaves given by applying the function to corresponding leaf values in the original tree.",
+        "type": "comment"
+    },
+    "310": {
+        "file_id": 17,
+        "content": "    if node_type and type(tree) not in treat_as_leaves:\n        children, node_spec = node_type.to_iterable(tree)\n        new_children = [tree_map(f, child, treat_as_leaves) for child in children]\n        return node_type.from_iterable(node_spec, new_children)\n    else:\n        return f(tree)\ndef tree_multimap(f, tree, *rest, treat_as_leaves: Optional[List] = None):\n    \"\"\"Map a multi-input function over pytree args to produce a new pytree.\n    Args:\n      f: function that takes `1 + len(rest)` arguments, to be applied at the\n        corresponding leaves of the pytrees.\n      tree: a pytree to be mapped over, with each leaf providing the first\n        positional argument to `f`.\n      *rest: a tuple of pytrees, each with the same structure as `tree`.\n    Returns:\n      A new pytree with the same structure as `tree` but with the value at each\n      leaf given by `f(x, *xs)` where `x` is the value at the corresponding leaf\n      in `tree` and `xs` is the tuple of values at corresponding leaves in `rest`.\n    \"\"\"",
+        "type": "code",
+        "location": "/lib/tree_util.py:71-93"
+    },
+    "311": {
+        "file_id": 17,
+        "content": "This function applies a multi-input function to the leaves of a pytree and its sibling pytrees, returning a new pytree with values determined by `f(x, *xs)` where `x` is the value at the corresponding leaf in the original tree and `xs` is the tuple of values at corresponding leaves in the sibling trees. If the node type allows for further processing, it iterates over the children and applies the function to each child and its corresponding siblings before returning a new pytree.",
+        "type": "comment"
+    },
+    "312": {
+        "file_id": 17,
+        "content": "    if treat_as_leaves is None:\n        treat_as_leaves = []\n    node_type = node_types.get(type(tree))\n    if node_type and type(tree) not in treat_as_leaves:\n        children, node_spec = node_type.to_iterable(tree)\n        all_children = [children]\n        for other_tree in rest:\n            other_children, other_node_data = node_type.to_iterable(other_tree)\n            if other_node_data != node_spec:\n                raise TypeError(\"Mismatch: {} != {}\".format(other_node_data, node_spec))\n            all_children.append(other_children)\n        new_children = [tree_multimap(f, *xs, treat_as_leaves=treat_as_leaves) for xs in zip(*all_children)]\n        return node_type.from_iterable(node_spec, new_children)\n    else:\n        return f(tree, *rest)\ndef prefix_multimap(f, treedef, tree, *rest):\n    \"\"\"Like tree_multimap but only maps down through a tree prefix.\"\"\"\n    if isinstance(treedef, PyLeaf):\n        return f(tree, *rest)\n    else:\n        node_type = node_types.get(type(tree))\n        if node_type != treedef.node_type:",
+        "type": "code",
+        "location": "/lib/tree_util.py:95-119"
+    },
+    "313": {
+        "file_id": 17,
+        "content": "This code is determining the appropriate node type for a given tree and iterating through trees to ensure they match. It then applies a function f to each tree, handling different cases based on whether the node type is specified or not.",
+        "type": "comment"
+    },
+    "314": {
+        "file_id": 17,
+        "content": "            raise TypeError(\"Mismatch: {} != {}\".format(treedef.node_type, node_type))\n        children, node_data = node_type.to_iterable(tree)\n        if node_data != treedef.node_data:\n            raise TypeError(\"Mismatch: {} != {}\".format(treedef.node_data, node_data))\n        all_children = [children]\n        for other_tree in rest:\n            other_children, other_node_data = node_type.to_iterable(other_tree)\n            if other_node_data != node_data:\n                raise TypeError(\"Mismatch: {} != {}\".format(other_node_data, node_data))\n            all_children.append(other_children)\n        all_children = zip(*all_children)\n        new_children = [prefix_multimap(f, td, *xs) for td, xs in zip(treedef.children, all_children)]\n        return node_type.from_iterable(node_data, new_children)\ndef walk_pytree(f_node, f_leaf, tree, treat_as_leaves: Optional[List] = None):\n    node_type = node_types.get(type(tree))\n    if treat_as_leaves is None:\n        treat_as_leaves = []\n    if node_type and type(tree) not in treat_as_leaves:",
+        "type": "code",
+        "location": "/lib/tree_util.py:120-141"
+    },
+    "315": {
+        "file_id": 17,
+        "content": "Code is iterating over a tree structure and checking if the nodes match in terms of node type, node data, and number of children. If any mismatches are found, a TypeError is raised. The function walks through the tree recursively and applies functions to both leaf and non-leaf nodes based on their types. Optional treat_as_leaves list specifies which types should be treated as leaves.",
+        "type": "comment"
+    },
+    "316": {
+        "file_id": 17,
+        "content": "        children, node_spec = node_type.to_iterable(tree)\n        proc_children, child_specs = unzip2([walk_pytree(f_node, f_leaf, child, treat_as_leaves) for child in children])\n        tree_def = PyTreeDef(node_type, node_spec, child_specs)\n        return f_node(proc_children), tree_def\n    else:\n        return f_leaf(tree), PyLeaf()\ndef build_tree(treedef, xs):\n    if isinstance(treedef, PyLeaf):\n        return xs\n    else:\n        # We use 'iter' for clearer error messages\n        children = safe_map(build_tree, iter(treedef.children), iter(xs))\n        return treedef.node_type.from_iterable(treedef.node_data, children)\ndef _tree_unflatten(xs, treedef):\n    if isinstance(treedef, PyLeaf):\n        return next(xs)\n    else:\n        children = safe_map(partial(_tree_unflatten, xs), treedef.children)\n        return treedef.node_type.from_iterable(treedef.node_data, children)\ndef _num_leaves(treedef):\n    return 1 if isinstance(treedef, PyLeaf) else sum(safe_map(_num_leaves, treedef.children))\ndef _nested_treedef(inner, outer):",
+        "type": "code",
+        "location": "/lib/tree_util.py:142-171"
+    },
+    "317": {
+        "file_id": 17,
+        "content": "Function `to_iterable` splits node type and specifications, walks tree using function `walk_pytree`, unzips the result into procedure children and child specifications, creates a `PyTreeDef` object, and returns the processed children and tree definition.\n`build_tree` recursively builds the tree by calling itself on each child of the current node and constructs the final node using the node type and data.\n`_tree_unflatten` recursively unflattens the tree by calling itself on each child of the current node.\nFunction `_num_leaves` returns 1 if the treedef is a leaf, otherwise it sums the number of leaves in each child.\nFunction `_nested_treedef` takes two node types and returns a nested tree definition.",
+        "type": "comment"
+    },
+    "318": {
+        "file_id": 17,
+        "content": "    # just used in tree_transpose error checking\n    if isinstance(outer, PyLeaf):\n        return inner\n    else:\n        children = safe_map(partial(_nested_treedef, inner), outer.children)\n        return PyTreeDef(outer.node_type, outer.node_data, tuple(children))\nclass PyTreeDef(object):\n    def __init__(self, node_type, node_data, children):\n        self.node_type = node_type\n        self.node_data = node_data\n        self.children = children\n    def __repr__(self):\n        if self.node_data is None:\n            data_repr = \"\"\n        else:\n            data_repr = \"[{}]\".format(self.node_data)\n        return \"PyTree({}{}, [{}])\".format(self.node_type.name, data_repr, \",\".join(safe_map(repr, self.children)))\n    def __hash__(self):\n        return hash((self.node_type, self.node_data, tuple(self.children)))\n    def __eq__(self, other):\n        if isinstance(other, PyLeaf):\n            return False\n        else:\n            return self.node_type == other.node_type and self.node_data == other.node_data and self.children == other.children",
+        "type": "code",
+        "location": "/lib/tree_util.py:172-201"
+    },
+    "319": {
+        "file_id": 17,
+        "content": "The code defines a `PyTreeDef` class representing nodes in a tree structure. It checks if the input is a leaf node, then creates children objects using `_nested_treedef` and `safe_map`, and returns an instance of `PyTreeDef` with the given node type, data, and children. The class also provides a custom `__repr__` method for string representation, a `__hash__` method for hashability, and an `__eq__` method for equality comparison.",
+        "type": "comment"
+    },
+    "320": {
+        "file_id": 17,
+        "content": "    def __ne__(self, other):\n        return not self == other\nclass PyLeaf(object):\n    def __repr__(self):\n        return \"*\"\n    def __eq__(self, other):\n        return isinstance(other, PyLeaf)\nclass NodeType(object):\n    def __init__(self, name, to_iterable, from_iterable):\n        self.name = name\n        self.to_iterable = to_iterable\n        self.from_iterable = from_iterable\nnode_types: Dict[type, NodeType] = {}\ndef register_pytree_node(py_type, to_iterable, from_iterable):\n    assert py_type not in node_types\n    node_types[py_type] = NodeType(str(py_type), to_iterable, from_iterable)\ndef tuple_to_iterable(xs):\n    return xs, None\ndef tuple_from_iterable(_keys, xs):\n    return tuple(xs)\ndef list_to_iterable(xs):\n    return tuple(xs), None\ndef list_from_iterable(_keys, xs):\n    return list(xs)\ndef dict_to_iterable(xs):\n    keys = tuple(sorted(xs.keys()))\n    return tuple(map(xs.get, keys)), keys\ndef dict_from_iterable(keys, xs):\n    return dict(safe_zip(keys, xs))\ndef ordered_dict_from_iterable(keys, xs):\n    return collections.OrderedDict(safe_zip(keys, xs))",
+        "type": "code",
+        "location": "/lib/tree_util.py:203-256"
+    },
+    "321": {
+        "file_id": 17,
+        "content": "This code defines a class hierarchy for representing and serializing objects in a tree-like structure. It includes methods for converting different types of collections (tuples, lists, dictionaries) to iterable and back. The `NodeType` class stores information about the type and its conversion rules, which are registered using the `register_pytree_node` function.",
+        "type": "comment"
+    },
+    "322": {
+        "file_id": 17,
+        "content": "def default_dict_to_iterable(xs):\n    return (tuple(xs.values()), (xs.default_factory, tuple(xs.keys())))\ndef default_dict_from_iterable(keys, xs):\n    return collections.defaultdict(keys[0], safe_zip(keys[1], xs))\ndef none_to_iterable(_xs):\n    return (), None\ndef none_from_iterable(_keys, _xs):\n    return None\nregister_pytree_node(tuple, tuple_to_iterable, tuple_from_iterable)\nregister_pytree_node(list, list_to_iterable, list_from_iterable)\nregister_pytree_node(dict, dict_to_iterable, dict_from_iterable)\nregister_pytree_node(collections.OrderedDict, dict_to_iterable, ordered_dict_from_iterable)\nregister_pytree_node(collections.defaultdict, default_dict_to_iterable, default_dict_from_iterable)\nregister_pytree_node(type(None), none_to_iterable, none_from_iterable)",
+        "type": "code",
+        "location": "/lib/tree_util.py:259-280"
+    },
+    "323": {
+        "file_id": 17,
+        "content": "This code registers different data types and their conversion functions for serialization using the PyTree API. It handles tuples, lists, dictionaries (including OrderedDict), collections.defaultdict, and None type. The default_dict_to_iterable, default_dict_from_iterable, none_to_iterable, and none_from_iterable functions handle the conversion to and from iterables for these data types.",
+        "type": "comment"
+    },
+    "324": {
+        "file_id": 18,
+        "content": "/lib/util.py",
+        "type": "filepath"
+    },
+    "325": {
+        "file_id": 18,
+        "content": "The code defines neural network functions for data processing, including ResidualRecurrentBlocks and BatchNorm2d initialization, as well as MLPs, LSTM/RNN layers, Transformer blocks with recurrent forward pass. It also includes a function `get_norm` for normalization and another function `_banded_repeat`.",
+        "type": "summary"
+    },
+    "326": {
+        "file_id": 18,
+        "content": "from typing import Dict, Optional\nimport torch as th\nfrom torch import nn\nfrom torch.nn import functional as F\nimport lib.torch_util as tu\nfrom lib.masked_attention import MaskedAttention\nfrom lib.minecraft_util import store_args\nfrom lib.tree_util import tree_map\ndef get_module_log_keys_recursive(m: nn.Module):\n    \"\"\"Recursively get all keys that a module and its children want to log.\"\"\"\n    keys = []\n    if hasattr(m, \"get_log_keys\"):\n        keys += m.get_log_keys()\n    for c in m.children():\n        keys += get_module_log_keys_recursive(c)\n    return keys\nclass FanInInitReLULayer(nn.Module):\n    \"\"\"Implements a slightly modified init that correctly produces std 1 outputs given ReLU activation\n    :param inchan: number of input channels\n    :param outchan: number of output channels\n    :param layer_args: positional layer args\n    :param layer_type: options are \"linear\" (dense layer), \"conv\" (2D Convolution), \"conv3d\" (3D convolution)\n    :param init_scale: multiplier on initial weights\n    :param batch_norm: use batch norm after the layer (for 2D data)",
+        "type": "code",
+        "location": "/lib/util.py:1-30"
+    },
+    "327": {
+        "file_id": 18,
+        "content": "This code defines a function `get_module_log_keys_recursive` that recursively collects all keys that a module and its children want to log. It also defines a class `FanInInitReLULayer` which implements a slightly modified initialization for ReLU layers, initializing the weights with standard deviation of 1. The class takes parameters such as number of input and output channels, layer type (linear, conv or conv3d), initialization scale, and whether to use batch normalization.",
+        "type": "comment"
+    },
+    "328": {
+        "file_id": 18,
+        "content": "    :param group_norm_groups: if not None, use group norm with this many groups after the layer. Group norm 1\n        would be equivalent of layernorm for 2D data.\n    :param layer_norm: use layernorm after the layer (for 1D data)\n    :param layer_kwargs: keyword arguments for the layer\n    \"\"\"\n    @store_args\n    def __init__(\n        self,\n        inchan: int,\n        outchan: int,\n        *layer_args,\n        layer_type: str = \"conv\",\n        init_scale: int = 1,\n        batch_norm: bool = False,\n        batch_norm_kwargs: Dict = {},\n        group_norm_groups: Optional[int] = None,\n        layer_norm: bool = False,\n        use_activation=True,\n        log_scope: Optional[str] = None,\n        **layer_kwargs,\n    ):\n        super().__init__()\n        # Normalization\n        self.norm = None\n        if batch_norm:\n            self.norm = nn.BatchNorm2d(inchan, **batch_norm_kwargs)\n        elif group_norm_groups is not None:\n            self.norm = nn.GroupNorm(group_norm_groups, inchan)\n        elif layer_norm:\n            self.norm = nn.LayerNorm(inchan)",
+        "type": "code",
+        "location": "/lib/util.py:31-62"
+    },
+    "329": {
+        "file_id": 18,
+        "content": "This code defines a function `__init__` which initializes an object. It takes various parameters like `inchan`, `outchan`, `layer_args`, `layer_type`, `init_scale`, `batch_norm`, `batch_norm_kwargs`, `group_norm_groups`, `layer_norm`, `use_activation`, and `log_scope`. It also takes keyword arguments like `**layer_kwargs`. The function sets the normalization type based on the values of these parameters. If `batch_norm` is True, it uses BatchNorm2d. If `group_norm_groups` is not None, it uses GroupNorm. And if `layer_norm` is True, it uses LayerNorm. It also sets the norm variable to None initially.",
+        "type": "comment"
+    },
+    "330": {
+        "file_id": 18,
+        "content": "        layer = dict(conv=nn.Conv2d, conv3d=nn.Conv3d, linear=nn.Linear)[layer_type]\n        self.layer = layer(inchan, outchan, bias=self.norm is None, *layer_args, **layer_kwargs)\n        # Init Weights (Fan-In)\n        self.layer.weight.data *= init_scale / self.layer.weight.norm(\n            dim=tuple(range(1, self.layer.weight.data.ndim)), p=2, keepdim=True\n        )\n        # Init Bias\n        if self.layer.bias is not None:\n            self.layer.bias.data *= 0\n    def forward(self, x):\n        \"\"\"Norm after the activation. Experimented with this for both IAM and BC and it was slightly better.\"\"\"\n        if self.norm is not None:\n            x = self.norm(x)\n        x = self.layer(x)\n        if self.use_activation:\n            x = F.relu(x, inplace=True)\n        return x\n    def get_log_keys(self):\n        return [\n            f\"activation_mean/{self.log_scope}\",\n            f\"activation_std/{self.log_scope}\",\n        ]\nclass ResidualRecurrentBlocks(nn.Module):\n    @store_args\n    def __init__(\n        self,",
+        "type": "code",
+        "location": "/lib/util.py:64-94"
+    },
+    "331": {
+        "file_id": 18,
+        "content": "This code defines a util module with functions for initializing and forwarding data through neural networks. The ResidualRecurrentBlocks class is used to create residual recurrent blocks, which help in improving the stability of the network during training.",
+        "type": "comment"
+    },
+    "332": {
+        "file_id": 18,
+        "content": "        n_block=2,\n        recurrence_type=\"multi_layer_lstm\",\n        is_residual=True,\n        **block_kwargs,\n    ):\n        super().__init__()\n        init_scale = n_block ** -0.5 if is_residual else 1\n        self.blocks = nn.ModuleList(\n            [\n                ResidualRecurrentBlock(\n                    **block_kwargs,\n                    recurrence_type=recurrence_type,\n                    is_residual=is_residual,\n                    init_scale=init_scale,\n                    block_number=i,\n                )\n                for i in range(n_block)\n            ]\n        )\n    def forward(self, x, first, state):\n        state_out = []\n        assert len(state) == len(\n            self.blocks\n        ), f\"Length of state {len(state)} did not match length of blocks {len(self.blocks)}\"\n        for block, _s_in in zip(self.blocks, state):\n            x, _s_o = block(x, first, _s_in)\n            state_out.append(_s_o)\n        return x, state_out\n    def initial_state(self, batchsize):\n        if \"lstm\" in self.recurrence_type:",
+        "type": "code",
+        "location": "/lib/util.py:95-126"
+    },
+    "333": {
+        "file_id": 18,
+        "content": "This code defines a class that initializes a list of ResidualRecurrentBlock instances, each with potentially different recurrence_type and block_kwargs. The forward method processes input through each block, while the initial_state method returns an initial state for the LSTM recurrence type based on batch size.",
+        "type": "comment"
+    },
+    "334": {
+        "file_id": 18,
+        "content": "            return [None for b in self.blocks]\n        else:\n            return [b.r.initial_state(batchsize) for b in self.blocks]\nclass ResidualRecurrentBlock(nn.Module):\n    @store_args\n    def __init__(\n        self,\n        hidsize,\n        timesteps,\n        init_scale=1,\n        recurrence_type=\"multi_layer_lstm\",\n        is_residual=True,\n        use_pointwise_layer=True,\n        pointwise_ratio=4,\n        pointwise_use_activation=False,\n        attention_heads=8,\n        attention_memory_size=2048,\n        attention_mask_style=\"clipped_causal\",\n        log_scope=\"resblock\",\n        block_number=0,\n    ):\n        super().__init__()\n        self.log_scope = f\"{log_scope}{block_number}\"\n        s = init_scale\n        if use_pointwise_layer:\n            if is_residual:\n                s *= 2 ** -0.5  # second residual\n            self.mlp0 = FanInInitReLULayer(\n                hidsize,\n                hidsize * pointwise_ratio,\n                init_scale=1,\n                layer_type=\"linear\",\n                layer_norm=True,",
+        "type": "code",
+        "location": "/lib/util.py:127-161"
+    },
+    "335": {
+        "file_id": 18,
+        "content": "The code defines a ResidualRecurrentBlock class, which is a type of neural network module. It initializes the block with specified parameters like hidsize, timesteps, init_scale, recurrence_type, and more. If is_residual and use_pointwise_layer are True, the mlp0 layer is added to the block with specific size and initialization settings. The method returns an array of initial states for each block in the self.blocks list.",
+        "type": "comment"
+    },
+    "336": {
+        "file_id": 18,
+        "content": "                log_scope=self.log_scope + \"/ptwise_mlp0\",\n            )\n            self.mlp1 = FanInInitReLULayer(\n                hidsize * pointwise_ratio,\n                hidsize,\n                init_scale=s,\n                layer_type=\"linear\",\n                use_activation=pointwise_use_activation,\n                log_scope=self.log_scope + \"/ptwise_mlp1\",\n            )\n        self.pre_r_ln = nn.LayerNorm(hidsize)\n        if recurrence_type in [\"multi_layer_lstm\", \"multi_layer_bilstm\"]:\n            self.r = nn.LSTM(hidsize, hidsize, batch_first=True)\n            nn.init.normal_(self.r.weight_hh_l0, std=s * (self.r.weight_hh_l0.shape[0] ** -0.5))\n            nn.init.normal_(self.r.weight_ih_l0, std=s * (self.r.weight_ih_l0.shape[0] ** -0.5))\n            self.r.bias_hh_l0.data *= 0\n            self.r.bias_ih_l0.data *= 0\n        elif recurrence_type == \"transformer\":\n            self.r = MaskedAttention(\n                input_size=hidsize,\n                timesteps=timesteps,\n                memory_size=attention_memory_size,",
+        "type": "code",
+        "location": "/lib/util.py:162-184"
+    },
+    "337": {
+        "file_id": 18,
+        "content": "Creating a multi-layer perceptron (MLP) for pointwise features and layer normalization for pre-training.\n\nInitializing the LSTM or Transformer recurrent layer if specified, using normal distribution with scale 's'.",
+        "type": "comment"
+    },
+    "338": {
+        "file_id": 18,
+        "content": "                heads=attention_heads,\n                init_scale=s,\n                norm=\"none\",\n                log_scope=log_scope + \"/sa\",\n                use_muP_factor=True,\n                mask=attention_mask_style,\n            )\n    def forward(self, x, first, state):\n        residual = x\n        x = self.pre_r_ln(x)\n        x, state_out = recurrent_forward(\n            self.r,\n            x,\n            first,\n            state,\n            reverse_lstm=self.recurrence_type == \"multi_layer_bilstm\" and (self.block_number + 1) % 2 == 0,\n        )\n        if self.is_residual and \"lstm\" in self.recurrence_type:  # Transformer already residual.\n            x = x + residual\n        if self.use_pointwise_layer:\n            # Residual MLP\n            residual = x\n            x = self.mlp1(self.mlp0(x))\n            if self.is_residual:\n                x = x + residual\n        return x, state_out\ndef recurrent_forward(module, x, first, state, reverse_lstm=False):\n    if isinstance(module, nn.LSTM):\n        if state is not None:",
+        "type": "code",
+        "location": "/lib/util.py:185-216"
+    },
+    "339": {
+        "file_id": 18,
+        "content": "This function defines a recurrent forward pass for a Transformer block. It applies linear layers, LSTM/RNN, and optionally an MLP layer to input `x`. The result is returned along with the updated state.",
+        "type": "comment"
+    },
+    "340": {
+        "file_id": 18,
+        "content": "            # In case recurrent models do not accept a \"first\" argument we zero out the hidden state here\n            mask = 1 - first[:, 0, None, None].to(th.float)\n            state = tree_map(lambda _s: _s * mask, state)\n            state = tree_map(lambda _s: _s.transpose(0, 1), state)  # NL, B, H\n        if reverse_lstm:\n            x = th.flip(x, [1])\n        x, state_out = module(x, state)\n        if reverse_lstm:\n            x = th.flip(x, [1])\n        state_out = tree_map(lambda _s: _s.transpose(0, 1), state_out)  # B, NL, H\n        return x, state_out\n    else:\n        return module(x, first, state)\ndef _banded_repeat(x, t):\n    \"\"\"\n    Repeats x with a shift.\n    For example (ignoring the batch dimension):\n    _banded_repeat([A B C D E], 4)\n    =\n    [D E 0 0 0]\n    [C D E 0 0]\n    [B C D E 0]\n    [A B C D E]\n    \"\"\"\n    b, T = x.shape\n    x = th.cat([x, x.new_zeros(b, t - 1)], dim=1)\n    result = x.unfold(1, T, 1).flip(1)\n    return result\ndef bandify(b_nd, t, T):\n    \"\"\"\n    b_nd -> D_ntT, where\n        \"n\" indexes over basis functions",
+        "type": "code",
+        "location": "/lib/util.py:217-253"
+    },
+    "341": {
+        "file_id": 18,
+        "content": "This code is initializing a state for a recurrent model and passing input through the model. If reverse_lstm is True, it flips the input and output. The _banded_repeat function repeats an input sequence with a shift and the bandify function converts data from basis functions to a new shape.",
+        "type": "comment"
+    },
+    "342": {
+        "file_id": 18,
+        "content": "        \"d\" indexes over time differences\n        \"t\" indexes over output time\n        \"T\" indexes over input time\n        only t >= T is nonzero\n    B_ntT[n, t, T] = b_nd[n, t - T]\n    \"\"\"\n    nbasis, bandsize = b_nd.shape\n    b_nd = b_nd[:, th.arange(bandsize - 1, -1, -1)]\n    if bandsize >= T:\n        b_nT = b_nd[:, -T:]\n    else:\n        b_nT = th.cat([b_nd.new_zeros(nbasis, T - bandsize), b_nd], dim=1)\n    D_tnT = _banded_repeat(b_nT, t)\n    return D_tnT\ndef get_norm(name, d, dtype=th.float32):\n    if name == \"none\":\n        return lambda x: x\n    elif name == \"layer\":\n        return tu.LayerNorm(d, dtype=dtype)\n    else:\n        raise NotImplementedError(name)",
+        "type": "code",
+        "location": "/lib/util.py:254-276"
+    },
+    "343": {
+        "file_id": 18,
+        "content": "This code defines a function `get_norm` for normalization, and another function (not shown) called `_banded_repeat`. The `B_ntT` shape is being assigned based on the `b_nd` shape and a time index `T`. If `bandsize >= T`, it assigns `b_nT` as `b_nd[:, -T:]`. Otherwise, it concatenates `b_nd.new_zeros(nbasis, T - bandsize)` and `b_nd` along dimension 1 to form `b_nT`. The function then returns the result of `_banded_repeat(b_nT, t)`.",
+        "type": "comment"
+    },
+    "344": {
+        "file_id": 19,
+        "content": "/lib/xf.py",
+        "type": "filepath"
+    },
+    "345": {
+        "file_id": 19,
+        "content": "The code defines an attention mechanism with preprocessing methods and StridedAttn class, as well as SelfAttentionLayer and residual MLP layers for transformer models, including operations like concatenation, reshaping, and activation functions.",
+        "type": "summary"
+    },
+    "346": {
+        "file_id": 19,
+        "content": "\"\"\"\nImplementation of transformer and reshaping-based sparse transformer\n\"\"\"\nimport functools\nimport math\nimport torch as th\nfrom torch import nn\nfrom torch.nn import functional as F\nfrom lib import misc, mlp\nfrom lib import torch_util as tu\nfrom lib import util\nSENTINEL = 0.1337\ndef attention(\n    Q_bte,\n    K_bTe,\n    V_bTe,\n    dtype,\n    mask=True,\n    extra_btT=None,\n    maxlen=None,\n    check_sentinel=False,\n    use_muP_factor=False,\n):\n    \"\"\"\n    performs softmax(Q*K)*V operation\n    t : output (write) time axis, possibly size=1 for just the last timestep\n    T : input (read) time axis\n    t < T is OK\n    'check_sentinel' is used when you want to make it impossible to attend to certain keys.\n    All keys where every value is equal to the constant SENTINEL will be ignored.\n    Currently this is only used by StridedAttn.\n    \"\"\"\n    assert Q_bte.dtype == K_bTe.dtype == dtype, f\"{Q_bte.dtype}, {K_bTe.dtype}, {dtype} must all match\"\n    e = Q_bte.shape[2]\n    if check_sentinel:\n        invalid = (K_bTe == SENTINEL).int().sum(dim=-1) == e",
+        "type": "code",
+        "location": "/lib/xf.py:1-43"
+    },
+    "347": {
+        "file_id": 19,
+        "content": "The code snippet defines a function named \"attention\" which performs softmax(Q*K)*V operation. It takes query (Q), keys (K), and values (V) as input, along with the data type, mask, additional batch-to-time matrix (extra_btT), maximum length (maxlen), and a flag to check sentinel values (check_sentinel). The function checks if the data types match and then proceeds to perform the softmax operation.",
+        "type": "comment"
+    },
+    "348": {
+        "file_id": 19,
+        "content": "        invalid = misc.reshape(invalid, \"b, T\", \"b, 1, T\")\n    if isinstance(mask, th.Tensor):\n        bias = (~mask).float() * -1e9\n    elif mask:\n        bias = get_attn_bias_cached(Q_bte.shape[1], K_bTe.shape[1], maxlen=maxlen, device=Q_bte.device, dtype=th.float32)\n    else:\n        bias = Q_bte.new_zeros((), dtype=th.float32)\n    if extra_btT is not None:\n        bias = bias + extra_btT\n    # Equivalent to bias + (1 / math.sqrt(e)) * th.einsum(\"bte,bpe->btp\", Q_bte, K_bte)\n    # but faster:\n    logit_btT = th.baddbmm(\n        bias,\n        Q_bte.float(),\n        K_bTe.float().transpose(-1, -2),\n        alpha=(1 / e) if use_muP_factor else (1 / math.sqrt(e)),\n    )\n    if check_sentinel:\n        logit_btT = logit_btT - 1e9 * invalid.float()\n    W_btT = th.softmax(logit_btT, dim=2).to(dtype)\n    if callable(V_bTe):\n        # This is used by the sharded video model to defer waiting on\n        # the broadcast of the values until they're needed\n        V_bTe = V_bTe()\n    # th.einsum only lets you use lowercase letters, so 'p' for 'past'",
+        "type": "code",
+        "location": "/lib/xf.py:44-68"
+    },
+    "349": {
+        "file_id": 19,
+        "content": "The code calculates the logits for a multi-head attention mechanism, taking into account masking and optional extra inputs. It applies the necessary transformations to the input tensors and performs the dot product between queries (Q) and keys (K). The result is then normalized using softmax function to obtain the weights (W_btT) for the attention process.",
+        "type": "comment"
+    },
+    "350": {
+        "file_id": 19,
+        "content": "    # means 'T'\n    A_bte = th.einsum(\"btp,bpe->bte\", W_btT, V_bTe)\n    return A_bte\nclass Attn:\n    \"\"\"\n    Defines an attention mechanism\n    All the mechanisms here can be defined by two operations:\n    1. preprocessing Q,K,V,R[=relative attention query]\n        to move axes from embedding dimension to\n        batch dimension, and possibly doing shifts.\n    2. postprocessing the final result to move axes back to embedding\n        axis.\n    \"\"\"\n    def __init__(self, mask, maxlen):\n        self.mask = mask\n        self.maxlen = maxlen\n    def preproc_qkv(self, Q_bte, K_bte, V_bte):\n        raise NotImplementedError\n    def preproc_r(self, R_btn):\n        raise NotImplementedError\ndef split_heads(x_bte, h):\n    b, t, e = x_bte.shape\n    assert e % h == 0, \"Embsize must be divisible by number of heads\"\n    q = e // h\n    x_bthq = x_bte.reshape((b, t, h, q))\n    x_bhtq = misc.transpose(x_bthq, \"bthq\", \"bhtq\")\n    x_Btq = x_bhtq.reshape((b * h, t, q))\n    return x_Btq\nclass All2All(Attn):\n    def __init__(self, nhead, maxlen, mask=True, head_dim=None):",
+        "type": "code",
+        "location": "/lib/xf.py:69-107"
+    },
+    "351": {
+        "file_id": 19,
+        "content": "This code defines an attention mechanism class and a function to split input into heads. The attention mechanism is initialized with parameters such as number of heads, maximum length, and mask. The \"preproc_qkv\" and \"preproc_r\" methods for preprocessing Q, K, V, and R are not implemented yet. The code also includes the \"split_heads\" function to split input into multiple heads.",
+        "type": "comment"
+    },
+    "352": {
+        "file_id": 19,
+        "content": "        super().__init__(mask=mask, maxlen=maxlen)\n        assert (nhead is None) != (head_dim is None), \"exactly one of nhead and head_dim must be specified\"\n        self.h = nhead\n        self.head_dim = head_dim\n    def preproc_qkv(self, *xs):\n        q = xs[0].shape[-1]\n        for x in xs:\n            assert x.shape[-1] == q, \"embedding dimensions do not match\"\n        h = self.h or misc.exact_div(q, self.head_dim)\n        postproc = functools.partial(self.postproc_a, h=h)\n        return (postproc, *tuple(split_heads(x, h) for x in xs))\n    def preproc_r(self, R_btn):\n        _, ret = self.preproc_qkv(R_btn)\n        return ret\n    def postproc_a(self, A_Btq, h):\n        B, t, q = A_Btq.shape\n        b = B // h\n        A_bhtq = A_Btq.reshape((b, h, t, q))\n        A_bthq = misc.transpose(A_bhtq, \"bhtq\", \"bthq\")\n        A_bte = A_bthq.reshape((b, t, h * q))\n        return A_bte\ndef _required_padding(dim, target_div):\n    if dim % target_div == 0:\n        return 0\n    else:\n        return target_div - dim % target_div",
+        "type": "code",
+        "location": "/lib/xf.py:108-138"
+    },
+    "353": {
+        "file_id": 19,
+        "content": "This code initializes a class with optional nhead and head_dim arguments, and defines preproc_qkv and preproc_r functions to handle input shapes. It also includes a postproc_a function for reshaping the output shape. The _required_padding function checks if padding is needed for certain dimensions.",
+        "type": "comment"
+    },
+    "354": {
+        "file_id": 19,
+        "content": "class StridedAttn(Attn):\n    def __init__(self, nhead, stride, maxlen, mask=True):\n        super().__init__(mask=mask, maxlen=maxlen)\n        self.h = nhead\n        self.stride = stride\n    def _preproc(self, x, name, Q_t=None, Q_pad=None):\n        x, undo = misc.reshape_undo(x, \"b, t*stride, e\", \"b, 1, t, stride*e\", stride=self.stride)\n        if name == \"Q\":\n            Q_pad = _required_padding(x.shape[2], self.maxlen)\n        original_t = x.shape[2]\n        x = F.pad(x, (0, 0, 0, Q_pad), value=SENTINEL)\n        undo = misc.compose_undo(undo, lambda x: x[:, :, :original_t])\n        if name == \"Q\":\n            Q_t = x.shape[2]\n            assert Q_t % self.maxlen == 0, f\"{Q_t} % {self.maxlen} != 0\"\n        else:\n            required_len = Q_t + self.maxlen\n            if x.shape[2] < required_len:\n                x = F.pad(x, (0, 0, required_len - x.shape[2], 0), value=SENTINEL)\n            assert x.shape[2] >= required_len\n            back = x[:, :, -Q_t - self.maxlen : -self.maxlen]\n            front = x[:, :, -Q_t:]",
+        "type": "code",
+        "location": "/lib/xf.py:141-163"
+    },
+    "355": {
+        "file_id": 19,
+        "content": "This code defines a StridedAttn class which is a subclass of Attn. The __init__ method initializes the number of heads, stride, maximum length, and whether or not to use a mask. The _preproc method preprocesses input data by reshaping, padding if necessary, and defining undo operations for later use. It also checks that the query tensor length is divisible by the maximum length.",
+        "type": "comment"
+    },
+    "356": {
+        "file_id": 19,
+        "content": "            x = th.cat([back, front], dim=1)\n        _, _, t, _ = x.shape\n        assert t == Q_t, f\"{t} != {Q_t}\"\n        x, undo = misc.reshape_undo(\n            x,\n            \"b, pad_shift, t*maxlen, stride*h*q\",\n            \"b, pad_shift, t, maxlen, stride, h, q\",\n            maxlen=self.maxlen,\n            h=self.h,\n            stride=self.stride,\n            undo=undo,\n        )\n        x, undo = misc.transpose_undo(x, \"bptmshq\", \"bthspmq\", undo=undo)\n        x, undo = misc.reshape_undo(\n            x,\n            \"b, t, h, stride, pad_shift, maxlen, q\",\n            \"b*t*h*stride, pad_shift*maxlen, q\",\n            undo=undo,\n        )\n        if name == \"Q\":\n            return x, undo, Q_t, Q_pad\n        else:\n            return x\n    def preproc_qkv(self, Q_bte, K_bte, V_bte):\n        pad = _required_padding(Q_bte.shape[1], self.stride)\n        if pad:\n            Q_bte = F.pad(Q_bte, (0, 0, 0, pad), value=SENTINEL)\n            K_bte = F.pad(K_bte, (0, 0, 0, pad), value=SENTINEL) if K_bte is not None else None",
+        "type": "code",
+        "location": "/lib/xf.py:164-192"
+    },
+    "357": {
+        "file_id": 19,
+        "content": "This code block preprocesses input data for a deep learning model. It performs operations like concatenation, reshaping, and transposition to prepare the data in a suitable format for further processing. The code also includes padding operations to handle data with different dimensions.",
+        "type": "comment"
+    },
+    "358": {
+        "file_id": 19,
+        "content": "            V_bte = F.pad(V_bte, (0, 0, 0, pad), value=SENTINEL) if V_bte is not None else None\n            undo = lambda x, pad=pad: x[:, :-pad]\n        else:\n            undo = None\n        if K_bte is not None:\n            pad = _required_padding(K_bte.shape[1], self.stride)\n            if pad:\n                K_bte = F.pad(K_bte, (0, 0, pad, 0), value=SENTINEL)\n                V_bte = F.pad(V_bte, (0, 0, pad, 0), value=SENTINEL)\n        assert Q_bte.shape[1] % self.stride == 0\n        assert K_bte is None or K_bte.shape[1] % self.stride == 0\n        assert V_bte is None or V_bte.shape[1] % self.stride == 0\n        Q, postproc, Q_t, Q_pad = self._preproc(Q_bte, \"Q\")\n        postproc = misc.compose_undo(undo, postproc)\n        return (\n            postproc,\n            Q,\n            self._preproc(K_bte, \"K\", Q_t=Q_t, Q_pad=Q_pad) if K_bte is not None else None,\n            self._preproc(V_bte, \"V\", Q_t=Q_t, Q_pad=Q_pad) if V_bte is not None else None,\n        )\n    def preproc_r(self, R_bte):\n        _, R, _, _ = self.preproc_qkv(R_bte, None, None)",
+        "type": "code",
+        "location": "/lib/xf.py:193-215"
+    },
+    "359": {
+        "file_id": 19,
+        "content": "This code performs preprocessing for query (Q), key (K), and value (V) tensors in a transformer model. If any of the tensors are None, they are padded with a sentinel value. The function returns preprocessing results including postprocessing operations (postproc) and prepared Q, K, and V tensors for training or inference.",
+        "type": "comment"
+    },
+    "360": {
+        "file_id": 19,
+        "content": "        return R\nQ_SCALE = 0.1\nK_SCALE = 0.2\nV_SCALE = 1.0\nPROJ_SCALE = 1.0\nMLP0_SCALE = 1.0\nMLP1_SCALE = 1.0\nR_SCALE = 0.1\nB_SCALE = 0.2\nclass AttentionLayerBase(nn.Module):\n    def __init__(\n        self,\n        *,\n        attn,\n        scale,\n        x_size,\n        c_size,\n        qk_size,\n        v_size,\n        dtype,\n        relattn=False,\n        seqlens=None,\n        separate=False,\n    ):\n        super().__init__()\n        dtype = tu.parse_dtype(dtype)\n        self.attn = attn\n        self.x_size = x_size\n        self.c_size = c_size\n        s = math.sqrt(scale)\n        separgs = dict(seqlens=seqlens, separate=separate)\n        self.q_layer = MultiscaleLinear(x_size, qk_size, name=\"q\", scale=Q_SCALE, dtype=dtype, **separgs)\n        self.k_layer = MultiscaleLinear(c_size, qk_size, name=\"k\", scale=K_SCALE, bias=False, dtype=dtype, **separgs)\n        self.v_layer = MultiscaleLinear(c_size, v_size, name=\"v\", scale=V_SCALE * s, bias=False, dtype=dtype, **separgs)\n        self.proj_layer = MultiscaleLinear(v_size, x_size, name=\"proj\", scale=PROJ_SCALE * s, dtype=dtype, **separgs)",
+        "type": "code",
+        "location": "/lib/xf.py:216-254"
+    },
+    "361": {
+        "file_id": 19,
+        "content": "This code defines an `AttentionLayerBase` class that inherits from `nn.Module`. It takes in several parameters such as `attn`, `scale`, `x_size`, `c_size`, `qk_size`, `v_size`, `dtype`, `relattn`, and `seqlens`. Inside the class, it initializes multiple layers using `MultiscaleLinear` with different scales and sizes based on the input parameters. These layers are used for query (Q), key (K), value (V) computations, and projection.",
+        "type": "comment"
+    },
+    "362": {
+        "file_id": 19,
+        "content": "        self.relattn = relattn\n        maxlen = attn.maxlen\n        assert maxlen > 0 or not attn.mask\n        if self.relattn:\n            nbasis = 10\n            self.r_layer = tu.NormedLinear(x_size, nbasis * attn.h, scale=R_SCALE, dtype=dtype)\n            self.b_nd = nn.Parameter(th.randn(nbasis, maxlen) * B_SCALE)\n        self.maxlen = maxlen\n        self.dtype = dtype\n    def relattn_logits(self, X_bte, T):\n        R_btn = self.r_layer(X_bte).float()\n        R_btn = self.attn.preproc_r(R_btn)\n        t = R_btn.shape[1]\n        D_ntT = util.bandify(self.b_nd, t, T)\n        extra_btT = th.einsum(\"btn,ntp->btp\", R_btn, D_ntT)\n        return extra_btT\ndef quick_gelu(x):\n    return x * th.sigmoid(1.702 * x)\ndef act(actname, x):\n    if actname == \"relu\":\n        return F.relu(x)\n    elif actname == \"gelu\":\n        return quick_gelu(x)\n    elif actname == \"none\":\n        return x\n    else:\n        raise NotImplementedError(actname)\nclass SelfAttentionLayer(AttentionLayerBase):\n    \"\"\"\n    Residual attention layer that takes a single tensor x and has it attend to itself",
+        "type": "code",
+        "location": "/lib/xf.py:255-291"
+    },
+    "363": {
+        "file_id": 19,
+        "content": "This code defines a class called SelfAttentionLayer which inherits from AttentionLayerBase. It initializes the relattn attribute, checks if relattn is set, and then initializes r_layer and b_nd if relattn is true. The maxlen, dtype attributes are also initialized based on the input attn. Finally, a relattn_logits method is defined to compute the relative attention logits for the input X_bte and T. Additionally, there are two helper functions: relu, gelu, and none act as activation functions which can be applied to the output of the layer.",
+        "type": "comment"
+    },
+    "364": {
+        "file_id": 19,
+        "content": "    Has the form\n        output = x + f(x)\n    \"\"\"\n    def __init__(\n        self,\n        x_size,\n        attn,\n        scale,\n        dtype=\"float32\",\n        norm=\"layer\",\n        cache_keep_len=None,\n        relattn=False,\n        log_scope=\"sa\",\n        use_muP_factor=False,\n        **kwargs,\n    ):\n        super().__init__(\n            x_size=x_size,\n            c_size=x_size,\n            qk_size=x_size,\n            v_size=x_size,\n            attn=attn,\n            scale=scale,\n            relattn=relattn,\n            dtype=dtype,\n            **kwargs,\n        )\n        self.ln_x = util.get_norm(norm, x_size, dtype=dtype)\n        if cache_keep_len is None:\n            if hasattr(attn, \"cache_keep_len\"):\n                cache_keep_len = attn.cache_keep_len\n            else:\n                if isinstance(attn, StridedAttn):\n                    stride = attn.stride\n                else:\n                    stride = 1\n                cache_keep_len = stride * attn.maxlen\n        self.cache_keep_len = cache_keep_len\n        self.log_scope = log_scope",
+        "type": "code",
+        "location": "/lib/xf.py:292-331"
+    },
+    "365": {
+        "file_id": 19,
+        "content": "This code defines a class constructor for an Attention module. It initializes the object with various parameters and sets up some attributes like normalization layers and cache lengths.",
+        "type": "comment"
+    },
+    "366": {
+        "file_id": 19,
+        "content": "        self.use_muP_factor = use_muP_factor\n    def residual(self, X_bte, state):\n        X_bte = self.ln_x(X_bte)\n        Q_bte = self.q_layer(X_bte)\n        K_bte = self.k_layer(X_bte)\n        V_bte = self.v_layer(X_bte)\n        if state:\n            state, K_bte, V_bte = self.update_state(state, K_bte, V_bte)\n        postproc_closure, Q_bte, K_bte, V_bte = self.attn.preproc_qkv(Q_bte, K_bte, V_bte)\n        extra_btT = self.relattn_logits(X_bte, K_bte.shape[1]) if self.relattn else None\n        A_bte = attention(\n            Q_bte,\n            K_bte,\n            V_bte,\n            mask=self.attn.mask,\n            extra_btT=extra_btT,\n            maxlen=self.maxlen,\n            dtype=self.dtype,\n            check_sentinel=isinstance(self.attn, StridedAttn),\n            use_muP_factor=self.use_muP_factor,\n        )\n        A_bte = postproc_closure(A_bte)\n        Aproj_bte = self.proj_layer(A_bte)\n        return Aproj_bte, state\n    def forward(self, X_bte, state):\n        R_bte, state = self.residual(X_bte, state)",
+        "type": "code",
+        "location": "/lib/xf.py:332-359"
+    },
+    "367": {
+        "file_id": 19,
+        "content": "This code defines a class with two methods: \"residual\" and \"forward\". The \"residual\" method applies attention to input data, using a self-attention mechanism. It also allows for updating the state based on an argument passed in. The \"forward\" method is a wrapper around the \"residual\" method which also returns the updated state.",
+        "type": "comment"
+    },
+    "368": {
+        "file_id": 19,
+        "content": "        return X_bte + R_bte, state\n    def stateless_forward(self, X_bte):\n        out_bte, _state = self.forward(X_bte, None)\n        return out_bte\n    def update_state(self, state, K_bte, V_bte):\n        def append(prev, new):\n            \"\"\"\n            Given `prev` keys from cache, and `new` keys,\n            returns (cache, full), where\n            - cache goes into the output state, length chosen so that on the\n                next timestep, there are enough cached timesteps to get the full\n                context of lenth self.maxlen.\n            - full is used for the current forward pass, with length chosen so\n                that the first timestep new[:, 0] gets to see a context of\n                self.maxlen.\n            \"\"\"\n            tprev = prev.shape[1]\n            startfull = max(tprev - self.cache_keep_len, 0)\n            full = th.cat([prev[:, startfull:], new], dim=1)\n            outstate = full[:, max(full.shape[1] - (self.cache_keep_len), 0) :]\n            # To see that the preceding slicing is correct, consider the case",
+        "type": "code",
+        "location": "/lib/xf.py:360-382"
+    },
+    "369": {
+        "file_id": 19,
+        "content": "The code defines three functions for a neural network:\n1. `forward` performs the forward pass of the network, taking input X_bte and state as arguments, and returns output and updated state.\n2. `stateless_forward` performs a forward pass without considering the state from the previous timestep, only taking input X_bte as an argument.\n3. `update_state` updates the network's internal state based on current and cached keys (K_bte and V_bte), returning the updated cache and full key matrix for the next timestep.",
+        "type": "comment"
+    },
+    "370": {
+        "file_id": 19,
+        "content": "            # that maxlen==1. Then `full` only consists of `new`, and\n            # `outstate` is empty\n            return outstate, full\n        instate_K, instate_V = state\n        outstate_K, K_bte = append(instate_K, K_bte)\n        outstate_V, V_bte = append(instate_V, V_bte)\n        assert outstate_K.shape[-2] <= self.cache_keep_len\n        return (outstate_K, outstate_V), K_bte, V_bte\n    def initial_state(self, batchsize, initial_T=0):\n        return (\n            tu.zeros((batchsize, initial_T, self.x_size), dtype=self.dtype),\n            tu.zeros((batchsize, initial_T, self.x_size), dtype=self.dtype),\n        )\n    def empty_state(self):\n        return None\nclass PointwiseLayer(nn.Module):\n    \"\"\"\n    Residual MLP applied at each timestep\n    \"\"\"\n    def __init__(self, x_size, scale, dtype, norm, actname=\"relu\", mlp_ratio=2):\n        super().__init__()\n        s = math.sqrt(scale)\n        self.ln = util.get_norm(norm, x_size, dtype=dtype)\n        self.mlp = mlp.MLP(\n            insize=x_size,\n            nhidlayer=1,",
+        "type": "code",
+        "location": "/lib/xf.py:383-414"
+    },
+    "371": {
+        "file_id": 19,
+        "content": "The code initializes a residual MLP layer with a specified size, scale, data type, normalization method, activation function, and a ratio for the multi-layer perceptron (MLP). The class PointwiseLayer inherits from nn.Module and contains an instance of the Linear layer and a normalization layer, as well as a method to apply the MLP at each timestep in the input sequence.",
+        "type": "comment"
+    },
+    "372": {
+        "file_id": 19,
+        "content": "            outsize=x_size,\n            hidsize=int(x_size * mlp_ratio),\n            hidactiv=functools.partial(act, actname),\n            dtype=dtype,\n        )\n        self.mlp.layers[0].weight.data *= MLP0_SCALE * s\n        self.mlp.layers[1].weight.data *= MLP1_SCALE * s\n    def residual(self, x):\n        x = self.ln(x)\n        x = self.mlp(x)\n        return x\n    def forward(self, x):\n        return x + self.residual(x)\ndef _is_separate(sep, name):\n    if isinstance(sep, bool):\n        return sep\n    assert isinstance(sep, set)\n    if name in sep:\n        sep.remove(name)\n        return True\n    else:\n        return False\ndef make_maybe_multiscale(make_fn, *args, seqlens, separate, name, **kwargs):\n    \"\"\"\n    This function either creates one instance of a module or creates\n    a separate instance of the module for each resolution of the image,\n    determined by the `separate` parameter. We create separate modules\n    if `separate` is True or if `separate` is a set containing `name`.\n    \"\"\"\n    if _is_separate(separate, name):",
+        "type": "code",
+        "location": "/lib/xf.py:415-450"
+    },
+    "373": {
+        "file_id": 19,
+        "content": "This code defines a class and a function for creating instances of a module, either for all resolutions or separate instances for each resolution based on the \"separate\" parameter. The class has an initializer that sets up the module's layers and applies scaling to their weights. The forward function performs a residual connection with the module. The _is_separate function checks if a separate instance should be created for the given name, removing it from the set if it should be created separately. The make_maybe_multiscale function creates either one instance or multiple instances of the module based on the separate parameter.",
+        "type": "comment"
+    },
+    "374": {
+        "file_id": 19,
+        "content": "        modules = [make_fn(*args, **kwargs) for _ in seqlens]\n        return SplitCallJoin(modules, seqlens)\n    else:\n        return make_fn(*args, **kwargs)\nclass SplitCallJoin(nn.Module):\n    def __init__(self, mods, seqlens):\n        super().__init__()\n        self.mods = nn.ModuleList(mods)\n        self.seqlens = seqlens\n    def forward(self, x):\n        tl = sum(self.seqlens)\n        x, undo = misc.reshape_undo(x, \"..., z*tl, e\", \"..., z, tl, e\", tl=tl)\n        x = list(th.split(x, self.seqlens, dim=-2))\n        new_x = []\n        for x, mod in misc.safezip(x, self.mods):\n            x, this_undo = misc.reshape_undo(x, \"..., z, l, e\", \"..., z*l, e\")\n            x = mod(x)\n            x = this_undo(x)\n            new_x.append(x)\n        x = th.cat(new_x, dim=-2)\n        x = undo(x)\n        return x\nMultiscaleLinear = functools.partial(make_maybe_multiscale, tu.NormedLinear)\nMultiscalePointwise = functools.partial(make_maybe_multiscale, PointwiseLayer)",
+        "type": "code",
+        "location": "/lib/xf.py:451-479"
+    },
+    "375": {
+        "file_id": 19,
+        "content": "This code defines a function `SplitCallJoin` that takes a list of modules and sequence lengths as inputs. It initializes the `SplitCallJoin` class, which splits the input tensor into multiple smaller tensors based on the sequence lengths, applies each module in parallel, and then concatenates the results back together. The function also defines two partial functions `MultiscaleLinear` and `MultiscalePointwise` using `functools.partial` to create variants of `make_maybe_multiscale` for `tu.NormedLinear` and `PointwiseLayer`, respectively.",
+        "type": "comment"
+    },
+    "376": {
+        "file_id": 20,
+        "content": "/requirements.txt",
+        "type": "filepath"
+    },
+    "377": {
+        "file_id": 20,
+        "content": "Installs necessary libraries: PyTorch, Gym, attrs, and OpenCV Python.",
+        "type": "summary"
+    },
+    "378": {
+        "file_id": 20,
+        "content": "torch==1.9.0\ngym3\nattrs\nopencv-python",
+        "type": "code",
+        "location": "/requirements.txt:1-4"
+    },
+    "379": {
+        "file_id": 20,
+        "content": "Installs necessary libraries: PyTorch, Gym, attrs, and OpenCV Python.",
+        "type": "comment"
+    },
+    "380": {
+        "file_id": 21,
+        "content": "/run_agent.py",
+        "type": "filepath"
+    },
+    "381": {
+        "file_id": 21,
+        "content": "The code imports libraries, defines a function 'main' that loads and uses a pre-trained model in the MineRL environment, taking two arguments: the path to the model file and weights file. It also adds an optional argument \"--model\" of type string for the file path loading.",
+        "type": "summary"
+    },
+    "382": {
+        "file_id": 21,
+        "content": "from argparse import ArgumentParser\nimport pickle\nfrom minerl.herobraine.env_specs.human_survival_specs import HumanSurvival\nfrom agent import MineRLAgent, ENV_KWARGS\ndef main(model, weights):\n    env = HumanSurvival(**ENV_KWARGS).make()\n    print(\"---Loading model---\")\n    agent_parameters = pickle.load(open(model, \"rb\"))\n    policy_kwargs = agent_parameters[\"model\"][\"args\"][\"net\"][\"args\"]\n    pi_head_kwargs = agent_parameters[\"model\"][\"args\"][\"pi_head_opts\"]\n    pi_head_kwargs[\"temperature\"] = float(pi_head_kwargs[\"temperature\"])\n    agent = MineRLAgent(env, policy_kwargs=policy_kwargs, pi_head_kwargs=pi_head_kwargs)\n    agent.load_weights(weights)\n    print(\"---Launching MineRL enviroment (be patient)---\")\n    obs = env.reset()\n    while True:\n        minerl_action = agent.get_action(obs)\n        obs, reward, done, info = env.step(minerl_action)\n        env.render()\nif __name__ == \"__main__\":\n    parser = ArgumentParser(\"Run pretrained models on MineRL environment\")\n    parser.add_argument(\"--weights\", type=str, required=True, help=\"Path to the '.weights' file to be loaded.\")",
+        "type": "code",
+        "location": "/run_agent.py:1-30"
+    },
+    "383": {
+        "file_id": 21,
+        "content": "The code imports necessary libraries and defines a function named \"main\" which loads a pre-trained model, creates an agent, and then launches the MineRL environment. The main function takes two arguments: 'model', the path to the pickle file containing the loaded model's parameters; and 'weights', the path to the '.weights' file to be loaded. It then continuously takes actions in the environment based on the pre-trained agent's recommendations until the MineRL environment is completed or terminated.",
+        "type": "comment"
+    },
+    "384": {
+        "file_id": 21,
+        "content": "    parser.add_argument(\"--model\", type=str, required=True, help=\"Path to the '.model' file to be loaded.\")\n    args = parser.parse_args()\n    main(args.model, args.weights)",
+        "type": "code",
+        "location": "/run_agent.py:31-35"
+    },
+    "385": {
+        "file_id": 21,
+        "content": "This code is adding a required argument \"--model\" to the parser, specifying its type as string and loading the file path from this argument.",
+        "type": "comment"
+    },
+    "386": {
+        "file_id": 22,
+        "content": "/run_inverse_dynamics_model.py",
+        "type": "filepath"
+    },
+    "387": {
+        "file_id": 22,
+        "content": "The code initializes a game dictionary, defines model actions, manages camera resets, handles inputs, loads weights, captures video input, reads JSON data, and displays IDM predictions on a video stream with OpenCV functions.",
+        "type": "summary"
+    },
+    "388": {
+        "file_id": 22,
+        "content": "# NOTE: this is _not_ the original code of IDM!\n# As such, while it is close and seems to function well,\n# its performance might be bit off from what is reported\n# in the paper.\nfrom argparse import ArgumentParser\nimport pickle\nimport cv2\nimport numpy as np\nimport json\nimport torch as th\nfrom agent import ENV_KWARGS\nfrom inverse_dynamics_model import IDMAgent\nKEYBOARD_BUTTON_MAPPING = {\n    \"key.keyboard.escape\" :\"ESC\",\n    \"key.keyboard.s\" :\"back\",\n    \"key.keyboard.q\" :\"drop\",\n    \"key.keyboard.w\" :\"forward\",\n    \"key.keyboard.1\" :\"hotbar.1\",\n    \"key.keyboard.2\" :\"hotbar.2\",\n    \"key.keyboard.3\" :\"hotbar.3\",\n    \"key.keyboard.4\" :\"hotbar.4\",\n    \"key.keyboard.5\" :\"hotbar.5\",\n    \"key.keyboard.6\" :\"hotbar.6\",\n    \"key.keyboard.7\" :\"hotbar.7\",\n    \"key.keyboard.8\" :\"hotbar.8\",\n    \"key.keyboard.9\" :\"hotbar.9\",\n    \"key.keyboard.e\" :\"inventory\",\n    \"key.keyboard.space\" :\"jump\",\n    \"key.keyboard.a\" :\"left\",\n    \"key.keyboard.d\" :\"right\",\n    \"key.keyboard.left.shift\" :\"sneak\",\n    \"key.keyboard.left.control\" :\"sprint\",",
+        "type": "code",
+        "location": "/run_inverse_dynamics_model.py:1-36"
+    },
+    "389": {
+        "file_id": 22,
+        "content": "This code is initializing a dictionary mapping keyboard button names to their respective actions in the game. The code is used for controlling the character's movements and actions in the game environment using keyboard inputs.",
+        "type": "comment"
+    },
+    "390": {
+        "file_id": 22,
+        "content": "    \"key.keyboard.f\" :\"swapHands\",\n}\n# Template action\nNOOP_ACTION = {\n    \"ESC\": 0,\n    \"back\": 0,\n    \"drop\": 0,\n    \"forward\": 0,\n    \"hotbar.1\": 0,\n    \"hotbar.2\": 0,\n    \"hotbar.3\": 0,\n    \"hotbar.4\": 0,\n    \"hotbar.5\": 0,\n    \"hotbar.6\": 0,\n    \"hotbar.7\": 0,\n    \"hotbar.8\": 0,\n    \"hotbar.9\": 0,\n    \"inventory\": 0,\n    \"jump\": 0,\n    \"left\": 0,\n    \"right\": 0,\n    \"sneak\": 0,\n    \"sprint\": 0,\n    \"swapHands\": 0,\n    \"camera\": np.array([0, 0]),\n    \"attack\": 0,\n    \"use\": 0,\n    \"pickItem\": 0,\n}\nMESSAGE = \"\"\"\nThis script will take a video, predict actions for its frames and\nand show them with a cv2 window.\nPress any button the window to proceed to the next frame.\n\"\"\"\n# Matches a number in the MineRL Java code regarding sensitivity\n# This is for mapping from recorded sensitivity to the one used in the model\nCAMERA_SCALER = 360.0 / 2400.0\ndef json_action_to_env_action(json_action):\n    \"\"\"\n    Converts a json action into a MineRL action.\n    Returns (minerl_action, is_null_action)\n    \"\"\"\n    # This might be slow...\n    env_action = NOOP_ACTION.copy()",
+        "type": "code",
+        "location": "/run_inverse_dynamics_model.py:37-86"
+    },
+    "391": {
+        "file_id": 22,
+        "content": "This code defines a set of actions that the model should predict for a given video. It also includes a template action and a message to be displayed with a cv2 window. The CAMERA_SCALER is used for mapping sensitivity from recorded Java code to the one used in the model. The json_action_to_env_action function converts a JSON action into a MineRL action.",
+        "type": "comment"
+    },
+    "392": {
+        "file_id": 22,
+        "content": "    # As a safeguard, make camera action again so we do not override anything\n    env_action[\"camera\"] = np.array([0, 0])\n    is_null_action = True\n    keyboard_keys = json_action[\"keyboard\"][\"keys\"]\n    for key in keyboard_keys:\n        # You can have keys that we do not use, so just skip them\n        # NOTE in original training code, ESC was removed and replaced with\n        #      \"inventory\" action if GUI was open.\n        #      Not doing it here, as BASALT uses ESC to quit the game.\n        if key in KEYBOARD_BUTTON_MAPPING:\n            env_action[KEYBOARD_BUTTON_MAPPING[key]] = 1\n            is_null_action = False\n    mouse = json_action[\"mouse\"]\n    camera_action = env_action[\"camera\"]\n    camera_action[0] = mouse[\"dy\"] * CAMERA_SCALER\n    camera_action[1] = mouse[\"dx\"] * CAMERA_SCALER\n    if mouse[\"dx\"] != 0 or mouse[\"dy\"] != 0:\n        is_null_action = False\n    else:\n        if abs(camera_action[0]) > 180:\n            camera_action[0] = 0\n        if abs(camera_action[1]) > 180:\n            camera_action[1] = 0",
+        "type": "code",
+        "location": "/run_inverse_dynamics_model.py:87-112"
+    },
+    "393": {
+        "file_id": 22,
+        "content": "This code resets the camera action to avoid overriding other actions and handles keyboard and mouse inputs for the environment.",
+        "type": "comment"
+    },
+    "394": {
+        "file_id": 22,
+        "content": "    mouse_buttons = mouse[\"buttons\"]\n    if 0 in mouse_buttons:\n        env_action[\"attack\"] = 1\n        is_null_action = False\n    if 1 in mouse_buttons:\n        env_action[\"use\"] = 1\n        is_null_action = False\n    if 2 in mouse_buttons:\n        env_action[\"pickItem\"] = 1\n        is_null_action = False\n    return env_action, is_null_action\ndef main(model, weights, video_path, json_path, n_batches, n_frames):\n    print(MESSAGE)\n    agent_parameters = pickle.load(open(model, \"rb\"))\n    net_kwargs = agent_parameters[\"model\"][\"args\"][\"net\"][\"args\"]\n    pi_head_kwargs = agent_parameters[\"model\"][\"args\"][\"pi_head_opts\"]\n    pi_head_kwargs[\"temperature\"] = float(pi_head_kwargs[\"temperature\"])\n    agent = IDMAgent(idm_net_kwargs=net_kwargs, pi_head_kwargs=pi_head_kwargs)\n    agent.load_weights(weights)\n    required_resolution = ENV_KWARGS[\"resolution\"]\n    cap = cv2.VideoCapture(video_path)\n    json_index = 0\n    with open(json_path) as json_file:\n        json_lines = json_file.readlines()\n        json_data = \"[\" + \",\".join(json_lines) + \"]\"",
+        "type": "code",
+        "location": "/run_inverse_dynamics_model.py:114-143"
+    },
+    "395": {
+        "file_id": 22,
+        "content": "This code handles mouse button events and initializes an inverse dynamics model agent for a game. It loads the agent's weights from a file, captures video input, and reads a JSON file containing game data.",
+        "type": "comment"
+    },
+    "396": {
+        "file_id": 22,
+        "content": "        json_data = json.loads(json_data)\n    for _ in range(n_batches):\n        th.cuda.empty_cache()\n        print(\"=== Loading up frames ===\")\n        frames = []\n        recorded_actions = []\n        for _ in range(n_frames):\n            ret, frame = cap.read()\n            if not ret:\n                break\n            assert frame.shape[0] == required_resolution[1] and frame.shape[1] == required_resolution[0], \"Video must be of resolution {}\".format(required_resolution)\n            # BGR -> RGB\n            frames.append(frame[..., ::-1])\n            env_action, _ = json_action_to_env_action(json_data[json_index])\n            recorded_actions.append(env_action)\n            json_index += 1\n        frames = np.stack(frames)\n        print(\"=== Predicting actions ===\")\n        predicted_actions = agent.predict_actions(frames)\n        for i in range(n_frames):\n            frame = frames[i]\n            recorded_action = recorded_actions[i]\n            cv2.putText(\n                frame,\n                f\"name: prediction (true)\",",
+        "type": "code",
+        "location": "/run_inverse_dynamics_model.py:144-170"
+    },
+    "397": {
+        "file_id": 22,
+        "content": "Loading and preprocessing video frames, converting actions from JSON to environment actions, predicting actions using the agent model, and displaying predictions on video frames.",
+        "type": "comment"
+    },
+    "398": {
+        "file_id": 22,
+        "content": "                (10, 10),\n                cv2.FONT_HERSHEY_SIMPLEX,\n                0.4,\n                (255, 255, 255),\n                1\n            )\n            for y, (action_name, action_array) in enumerate(predicted_actions.items()):\n                current_prediction = action_array[0, i]\n                cv2.putText(\n                    frame,\n                    f\"{action_name}: {current_prediction} ({recorded_action[action_name]})\",\n                    (10, 25 + y * 12),\n                    cv2.FONT_HERSHEY_SIMPLEX,\n                    0.35,\n                    (255, 255, 255),\n                    1\n                )\n            # RGB -> BGR again...\n            cv2.imshow(\"MineRL IDM model predictions\", frame[..., ::-1])\n            cv2.waitKey(0)\n    cv2.destroyAllWindows()\nif __name__ == \"__main__\":\n    parser = ArgumentParser(\"Run IDM on MineRL recordings.\")\n    parser.add_argument(\"--weights\", type=str, required=True, help=\"Path to the '.weights' file to be loaded.\")\n    parser.add_argument(\"--model\", type=str, required=True, help=\"Path to the '.model' file to be loaded.\")",
+        "type": "code",
+        "location": "/run_inverse_dynamics_model.py:171-197"
+    },
+    "399": {
+        "file_id": 22,
+        "content": "The code is displaying IDM model predictions on a video stream, with text labels for each action. It uses OpenCV's putText function to draw the labels on the frame and then displays the resulting image using cv2.imshow and waitKey functions. The code also takes arguments for weights and model files required to load the model.",
+        "type": "comment"
+    }
+}
